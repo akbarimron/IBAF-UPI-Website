@@ -8,7 +8,6 @@ import KetuaUmum from './components/KetuaUmum';
 import BeritaInformasi from './components/BeritaInformasi';
 import Dokumentasi from './components/Dokumentasi';
 import Spotify from './components/Spotify';
-import Pendaftaran from './components/Pendaftaran';
 import NaraHubung from './components/NaraHubung';
 import Footer from './components/Footer';
 
@@ -22,7 +21,7 @@ function App() {
       <BeritaInformasi />
       <Dokumentasi />
       <Spotify />
-      <Pendaftaran />
+
       <NaraHubung />
       <Footer />
     </div>

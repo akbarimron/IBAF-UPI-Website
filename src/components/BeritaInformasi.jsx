@@ -1,66 +1,50 @@
 import React, { useState } from 'react';
 import { Container, Row, Col, Card } from 'react-bootstrap';
 import { FaCalendarAlt, FaUser } from 'react-icons/fa';
+import { useIntersectionObserver } from '../hooks/useIntersectionObserver';
+import sertifikasiImg from '../img/beritainformasi/sertifikasi_kalistenik.jpeg';
+import funrunImg from '../img/beritainformasi/funrun.jpeg';
+import batch3 from '../img/beritainformasi/batch_3.png';
 import './BeritaInformasi.css';
 
 export default function BeritaInformasi() {
+  const ref = useIntersectionObserver();
   const [berita] = useState([
     {
       id: 1,
-      judul: 'Kompetisi Fitness GYMUPI 2024 Berakhir Sukses',
-      tanggal: '15 November 2024',
-      author: 'Admin GYMUPI',
-      deskripsi: 'Kompetisi fitness GYMUPI 2024 telah berhasil dilaksanakan dengan menghadirkan peserta dari berbagai jurusan.',
-      thumbnail: '🏆'
+      judul: 'Pendaftaran Anggota Baru IBAF UPI 2025 ',
+      tanggal: '1 November 2025',
+      author: 'Admin IBAF UPI',
+      deskripsi: 'IBAF UPI membuka pendaftaran anggota baru untuk batch 3 tahun 2025. Bergabunglah dengan kami dan jadilah bagian dari komunitas kebugaran terbaik di UPI!',
+      thumbnail: batch3,
+      isImage: true
     },
     {
       id: 2,
-      judul: 'Workshop Nutrisi dan Kesehatan',
-      tanggal: '10 November 2024',
-      author: 'Admin GYMUPI',
-      deskripsi: 'Kami mengadakan workshop gratis tentang pentingnya nutrisi dalam program fitness dan kesehatan.',
-      thumbnail: '🥗'
+      judul: 'Awarding Sertifikasi pelatihan kebugaran spesialisasi kalistenik',
+      tanggal: '17 - 18 Oktober 2025',
+      author: 'Admin IBAF UPI',
+      deskripsi: 'IBAF UPI dengan bangga mengumumkan pemberian sertifikasi  pelatihan kebugaran spesialisasi kalistenik yang telah berhasil di raih oleh Kang Amin ketua bidang kebugaran IBAF 2025.',
+      thumbnail: sertifikasiImg,
+      isImage: true
     },
     {
       id: 3,
-      judul: 'Peluncuran Program Latihan Baru',
-      tanggal: '5 November 2024',
-      author: 'Admin GYMUPI',
-      deskripsi: 'GYMUPI meluncurkan program latihan baru yang disesuaikan dengan kebutuhan mahasiswa pemula hingga advanced.',
-      thumbnail: '💪'
+      judul: 'Fun run IBAF X SBM',
+      tanggal: '19 Oktober 2025',
+      author: 'Admin IBAF UPI',
+      deskripsi: 'IBAF UPI bekerja sama dengan SBM UPI mengadakan acara fun run.',
+      thumbnail: funrunImg,
+      isImage: true
     },
-    {
-      id: 4,
-      judul: 'Community Gathering Bulanan',
-      tanggal: '1 November 2024',
-      author: 'Admin GYMUPI',
-      deskripsi: 'Acara gathering bulanan GYMUPI diadakan untuk mempererat silaturahmi antar member.',
-      thumbnail: '👥'
-    },
-    {
-      id: 5,
-      judul: 'Tips Fitness di Rumah',
-      tanggal: '25 Oktober 2024',
-      author: 'Admin GYMUPI',
-      deskripsi: 'Panduan lengkap untuk melakukan fitness di rumah tanpa perlu alat gym yang mahal.',
-      thumbnail: '🏠'
-    },
-    {
-      id: 6,
-      judul: 'Pencapaian Member GYMUPI di Kompetisi Nasional',
-      tanggal: '20 Oktober 2024',
-      author: 'Admin GYMUPI',
-      deskripsi: 'Beberapa member GYMUPI berhasil meraih medali di kompetisi fitness tingkat nasional.',
-      thumbnail: '🥇'
-    }
+    
   ]);
-
   return (
-    <section className="berita-informasi" id="berita">
+    <section className="berita-informasi fade-in-section" ref={ref} id="berita">
       <Container>
         <div className="section-header">
           <h2>Berita & Informasi</h2>
-          <p>Update terbaru dari GYMUPI</p>
+          <p>Update terbaru dari IBAF UPI</p>
         </div>
 
         <Row className="g-4">
@@ -68,7 +52,11 @@ export default function BeritaInformasi() {
             <Col md={6} lg={4} key={item.id}>
               <Card className="berita-card h-100">
                 <div className="berita-thumbnail">
-                  <span className="thumbnail-icon">{item.thumbnail}</span>
+                  {item.isImage ? (
+                    <img src={item.thumbnail} alt={item.judul} className="berita-img" />
+                  ) : (
+                    <span className="thumbnail-icon">{item.thumbnail}</span>
+                  )}
                 </div>
                 <Card.Body>
                   <Card.Title className="berita-judul">{item.judul}</Card.Title>

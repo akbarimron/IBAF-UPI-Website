@@ -1,5 +1,5 @@
 .ketua-umum {
-  padding: 80px 0;
+  padding: 120px 0;
   background: white;
 }
 
@@ -9,28 +9,44 @@
   align-items: center;
 }
 
+.ketua-foto {
+  width: 100%;
+  max-width: 700px;
+  height: auto;
+  border-radius: 15px;
+  transition: all 0.3s ease;
+  object-fit: cover;
+  display: block;
+}
+
+.ketua-foto:hover {
+  transform: translateY(-10px);
+
+}
+
 .image-placeholder {
   width: 300px;
   height: 400px;
-  background: linear-gradient(135deg, #ffc107, #ff9800);
+  background: linear-gradient(135deg, #B63333, #9B2222);
   border-radius: 15px;
   display: flex;
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 10px 30px rgba(255, 193, 7, 0.3);
+  box-shadow: 0 10px 30px rgba(230, 57, 70, 0.3);
   transition: all 0.3s ease;
 }
 
 .image-placeholder:hover {
   transform: translateY(-10px);
-  box-shadow: 0 15px 40px rgba(255, 193, 7, 0.4);
+  box-shadow: 0 15px 40px rgba(230, 57, 70, 0.4);
 }
 
 .ketua-card {
   border: none;
   border-radius: 10px;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  padding: 2rem;
 }
 
 .ketua-nama {
@@ -42,7 +58,7 @@
 
 .ketua-jabatan {
   font-size: 1.3rem;
-  color: #ffc107;
+  color: #B63333;
   font-weight: 600;
   margin-bottom: 5px;
 }
@@ -55,7 +71,7 @@
 
 .divider {
   height: 3px;
-  background: linear-gradient(45deg, #ffc107, #ff9800);
+  background: linear-gradient(45deg, #B63333, #9B2222);
   margin: 20px 0;
   border-radius: 2px;
 }
@@ -84,6 +100,6 @@
   }
 
   .ketua-umum {
-    padding: 50px 0;
+    padding: 120px 0;
   }
 }

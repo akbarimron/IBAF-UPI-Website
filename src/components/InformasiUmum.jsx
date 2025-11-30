@@ -1,9 +1,11 @@
 import React from 'react';
 import { Container, Row, Col, Card } from 'react-bootstrap';
 import { FaInfoCircle } from 'react-icons/fa';
+import { useIntersectionObserver } from '../hooks/useIntersectionObserver';
 import './InformasiUmum.css';
 
 export default function InformasiUmum() {
+  const ref = useIntersectionObserver();
   const informasi = [
     {
       title: 'Visi Kami',
@@ -18,13 +20,12 @@ export default function InformasiUmum() {
       description: 'Program latihan rutin, workshop kebugaran, kompetisi fitness, dan event community building yang menarik'
     }
   ];
-
   return (
-    <section className="informasi-umum" id="informasi-umum">
+    <section className="informasi-umum fade-in-section" ref={ref} id="informasi-umum">
       <Container>
         <div className="section-header">
           <h2>Informasi Umum</h2>
-          <p>Ketahui lebih lanjut tentang GYMUPI</p>
+          <p>Ketahui lebih lanjut tentang IBAF UPI</p>
         </div>
 
         <Row className="g-4">
@@ -47,9 +48,9 @@ export default function InformasiUmum() {
           <Col md={12}>
             <Card className="info-card-large">
               <Card.Body>
-                <h4>Tentang GYMUPI</h4>
+                <h4>Tentang IBAF UPI</h4>
                 <p>
-                  GYMUPI adalah organisasi mahasiswa di Universitas Pendidikan Indonesia yang berdedikasi untuk mempromosikan gaya hidup sehat dan kebugaran. 
+                  IBAF UPI adalah organisasi mahasiswa di Universitas Pendidikan Indonesia yang berdedikasi untuk mempromosikan gaya hidup sehat dan kebugaran. 
                   Sejak didirikan, kami telah membangun komunitas yang solid dengan ribuan anggota aktif. Organisasi kami menyediakan berbagai program pelatihan, 
                   seminar kesehatan, dan event komunitas yang dirancang untuk meningkatkan kesadaran akan pentingnya kebugaran fisik dan mental.
                 </p>

@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap');
+
 * {
   margin: 0;
   padding: 0;
@@ -5,12 +7,13 @@
 }
 
 body {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  font-family: 'Poppins', sans-serif;
   overflow-x: hidden;
 }
 
 .App {
   overflow-x: hidden;
+  padding-top: 80px;
 }
 
 /* Scroll behavior */
@@ -34,4 +37,34 @@ html {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #555;
+}
+
+/* Section Header Styling */
+.section-header {
+  text-align: center;
+  margin-bottom: 60px;
+}
+
+.section-header h2 {
+  font-size: 3rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 15px;
+  letter-spacing: -0.5px;
+}
+
+.section-header p {
+  font-size: 1.3rem;
+  color: #666;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .section-header h2 {
+    font-size: 2rem;
+  }
+
+  .section-header p {
+    font-size: 1rem;
+  }
 }

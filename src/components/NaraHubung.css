@@ -17,8 +17,24 @@
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
 
+.contact-image {
+  width: 100%;
+
+  overflow: hidden;
+  background: #f0f0f0;
+}
+
+.contact-img {
+
+  transition: transform 0.3s ease;
+}
+
+.contact-card:hover .contact-img {
+  transform: scale(1.05);
+}
+
 .contact-header {
-  background: linear-gradient(135deg, #ffc107, #ff9800);
+  background: linear-gradient(135deg, #B63333, #9B2222);
   padding: 30px 20px;
   display: flex;
   justify-content: center;
@@ -34,11 +50,11 @@
   justify-content: center;
   font-weight: 700;
   font-size: 2rem;
-  color: #ffc107;
+  color: #B63333;
 }
 
 .avatar-text {
-  color: #ff9800;
+  color: #9B2222;
 }
 
 .contact-nama {
@@ -49,7 +65,7 @@
 }
 
 .contact-posisi {
-  color: #ffc107;
+  color: #B63333;
   font-weight: 600;
   font-size: 0.95rem;
   margin-bottom: 15px;
@@ -57,7 +73,7 @@
 
 .divider {
   height: 2px;
-  background: linear-gradient(45deg, #ffc107, #ff9800);
+  background: linear-gradient(45deg, #B63333, #9B2222);
   margin: 15px 0;
   border-radius: 2px;
 }
@@ -80,7 +96,7 @@
 }
 
 .contact-icon {
-  color: #ffc107;
+  color: #B63333;
   font-size: 1.1rem;
   flex-shrink: 0;
 }
@@ -94,7 +110,7 @@
 }
 
 .contact-item a:hover {
-  color: #ffc107;
+  color: #B63333;
 }
 
 .lokasi-card {
@@ -113,7 +129,7 @@
 
 .lokasi-icon {
   font-size: 2rem;
-  color: #ffc107;
+  color: #B63333;
 }
 
 .lokasi-header h5 {
@@ -140,7 +156,7 @@
 
 @media (max-width: 768px) {
   .nara-hubung {
-    padding: 50px 0;
+    padding: 80px 0;
   }
 
   .contact-header {

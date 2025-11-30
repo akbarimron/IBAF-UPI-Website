@@ -1,7 +1,10 @@
 .hero-section {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  background-image: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url(../img/imah.png);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
   color: white;
-  padding: 60px 0;
+  padding: 40px 0;
 }
 
 .min-vh-100 {
@@ -12,14 +15,14 @@
   font-size: 3.5rem;
   font-weight: 700;
   margin-bottom: 20px;
-  background: linear-gradient(45deg, #ffc107, #ff9800);
+  background: linear-gradient(45deg, #B63333, #9B2222);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .hero-subtitle {
-  font-size: 1.25rem;
+  font-size: 1.5rem;
   color: #ccc;
   margin-bottom: 30px;
   line-height: 1.6;
@@ -39,7 +42,7 @@
 }
 
 .feature-icon {
-  color: #ffc107;
+  color: #B63333;
   font-size: 1.8rem;
 }
 
@@ -48,10 +51,10 @@
   align-items: center;
   justify-content: center;
   height: 400px;
-  background: rgba(255, 193, 7, 0.1);
+  background: rgba(230, 57, 70, 0.1);
   border-radius: 15px;
-  color: #ffc107;
-  border: 2px solid #ffc107;
+  color: #B63333;
+  border: 2px solid #B63333;
 }
 
 @media (max-width: 768px) {
