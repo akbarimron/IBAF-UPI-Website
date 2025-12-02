@@ -9,15 +9,15 @@ export default function InformasiUmum() {
   const informasi = [
     {
       title: 'Visi Kami',
-      description: 'Mewujudkan mahasiswa UPI yang sehat, bugar, dan memiliki bentuk tubuh ideal, serta membekali mereka dengan pengetahuan yang komprehensif tentang olahraga dan gizi, sehingga dapat menjalani gaya hidup aktif dan sehat secara berkelanjutan.'
+      description: 'Menjadi organisasi mahasiswa terdepan dalam pengembangan gaya hidup sehat dan bugar di lingkungan Universitas Pendidikan Indonesia'
     },
     {
       title: 'Misi Kami',
-      description: 'IBAF UPI berkomitmen untuk meningkatkan kesehatan dan kebugaran mahasiswa melalui edukasi, fasilitas, dan program latihan yang komprehensif. Kami memberdayakan anggota dengan pengetahuan gizi dan olahraga, membangun komunitas yang suportif, serta menjalin kemitraan strategis untuk terus mengembangkan potensi dan kualitas program kami.'
+      description: 'Memberikan platform untuk mahasiswa mengembangkan diri melalui program fitness, edukasi, dan komunitas yang solid'
     },
     {
       title: 'Program Unggulan',
-      description: 'Program latihan rutin, workshop kebugaran, kompetisi fitness, dan event community building yang menarik'
+      description: 'IBAF training, Workout Party with Community (WPWC), IBAF Development, dan berbagai event menarik lainnya'
     }
   ];
   return (
@@ -50,7 +50,9 @@ export default function InformasiUmum() {
               <Card.Body>
                 <h4>Tentang IBAF UPI</h4>
                 <p>
-                  Ideal Body and Fitness (IBAF) merupakan organisasi mahasiswa di bawah naungan UPI gym yang berfokus pada aktivitas fisik, olahraga, dan kegiatan sejenis yang mendukung kesehatan serta kebugaran mahasiswa. Organisasi ini bertujuan untuk meningkatkan kualitas kesehatan dan kebugaran mahasiswa dengan mengedepankan nilai-nilai disiplin, edukatif, produktif, serta berwawasan luas, sehingga dapat berperan aktif dalam mewujudkan generasi mahasiswa yang sehat, kuat, dan berdaya saing tinggi. Untuk mencapai tujuan tersebut, dilaksanakan program kerja UKM IBAF yang merupakan hasil dari Rapat Kerja Pengurus bersama Ketua UKM dan anggota bidang terkait. Program kerja yang direncanakan membutuhkan prosedur yang sistematis dan terorganisasi untuk memastikan administrasi yang rapi serta keseragaman dalam pelaksanaan setiap kegiatan. Selain itu, diperlukan juga pengelolaan kekayaan/inventaris UKM IBAF yang terstruktur dengan baik. Oleh karena itu, dibutuhkan kejelasan aturan dan teknis pelaksanaan yang selanjutnya disebut sebagai SOP (Standar Operasional Prosedur) Kesekretariatan UKM IBAF.
+                  IBAF UPI adalah organisasi mahasiswa di Universitas Pendidikan Indonesia yang berdedikasi untuk mempromosikan gaya hidup sehat dan kebugaran. 
+                  Sejak didirikan, kami telah membangun komunitas yang solid dengan ribuan anggota aktif. Organisasi kami menyediakan berbagai program pelatihan, 
+                  seminar kesehatan, dan event komunitas yang dirancang untuk meningkatkan kesadaran akan pentingnya kebugaran fisik dan mental.
                 </p>
               </Card.Body>
             </Card>
