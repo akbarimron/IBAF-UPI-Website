@@ -12,7 +12,7 @@ export default function Hero() {
       <Container>
         <Row className="align-items-center min-vh-100">
           <Col lg={8} className="hero-content">
-            <h1 className="hero-title">rully gay max superr hell nah</h1>
+            <h1 className="hero-title">Ideal Body and Fitness</h1>
             <p className="hero-subtitle">
               IBAF   UPI adalah organisasi mahasiswa yang fokus pada pengembangan kesehatan dan kebugaran di Universitas Pendidikan Indonesia
             </p>

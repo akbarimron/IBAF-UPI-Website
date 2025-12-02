@@ -1,0 +1,301 @@
+.struktur-organisasi-section {
+  padding: 80px 0;
+  background: linear-gradient(135deg, #f5f7fa 0%, #fff 100%);
+}
+
+.struktur-organisasi-section .section-title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #1a1a1a;
+  margin-bottom: 15px;
+}
+
+.struktur-organisasi-section .section-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+}
+
+/* Tab Styling */
+.struktur-tabs {
+  border-bottom: 2px solid #ddd;
+  background: white;
+  border-radius: 8px 8px 0 0;
+  padding: 0;
+  gap: 0;
+}
+
+.tab-link {
+  color: #666 !important;
+  font-weight: 600;
+  border: none !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 15px 20px !important;
+  transition: all 0.3s ease;
+}
+
+.tab-link:hover {
+  color: #B63333 !important;
+  background-color: rgba(182, 51, 51, 0.05);
+}
+
+.tab-link.active {
+  color: #B63333 !important;
+  border-bottom: 3px solid #B63333 !important;
+  background-color: rgba(182, 51, 51, 0.02);
+}
+
+.tab-content-custom {
+  background: white;
+  border-radius: 0 0 8px 8px;
+  padding: 40px;
+}
+
+/* Struktur Chart */
+.struktur-chart {
+  padding: 40px 20px;
+  background: white;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.chart-level {
+  display: flex;
+  justify-content: center;
+  gap: 30px;
+  flex-wrap: wrap;
+  margin: 20px 0;
+  width: 100%;
+}
+
+.chart-connector {
+  width: 2px;
+  height: 30px;
+  background: linear-gradient(180deg, #B63333, #9B2222);
+  margin: 10px 0;
+}
+
+.chart-box {
+  padding: 20px 30px;
+  border-radius: 8px;
+  text-align: center;
+  min-width: 200px;
+  border: 2px solid #B63333;
+  background: linear-gradient(135deg, rgba(182, 51, 51, 0.1), rgba(155, 34, 34, 0.05));
+  transition: all 0.3s ease;
+}
+
+.chart-box:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(182, 51, 51, 0.2);
+}
+
+.chart-box.ketua {
+  background: linear-gradient(135deg, #B63333, #9B2222);
+  border: none;
+}
+
+.chart-box.ketua .box-title {
+  color: white;
+  font-weight: 700;
+}
+
+.chart-box.ketua .box-subtitle {
+  color: rgba(255, 255, 255, 0.8);
+  font-size: 0.9rem;
+}
+
+.chart-box.wakil,
+.chart-box.sekretaris,
+.chart-box.bendahara {
+  background: linear-gradient(135deg, rgba(182, 51, 51, 0.15), rgba(155, 34, 34, 0.1));
+}
+
+.chart-box.divisi {
+  min-width: 180px;
+  background: linear-gradient(135deg, rgba(182, 51, 51, 0.08), rgba(155, 34, 34, 0.03));
+}
+
+.box-title {
+  display: block;
+  font-weight: 700;
+  color: #B63333;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.box-subtitle {
+  display: block;
+  font-size: 0.85rem;
+  color: #999;
+  margin-top: 5px;
+}
+
+/* Pengurus Card */
+.kepengurusan-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 30px;
+}
+
+.pengurus-card {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  text-align: center;
+  border: 2px solid #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.pengurus-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(182, 51, 51, 0.15);
+  border-color: #B63333;
+}
+
+.pengurus-icon {
+  font-size: 3rem;
+  color: #B63333;
+  margin-bottom: 20px;
+}
+
+.pengurus-posisi {
+  color: #1a1a1a;
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-bottom: 10px;
+}
+
+.pengurus-nama {
+  color: #666;
+  font-size: 1.05rem;
+  margin-bottom: 15px;
+}
+
+.pengurus-divisi {
+  display: inline-block;
+  background: linear-gradient(135deg, rgba(182, 51, 51, 0.1), rgba(155, 34, 34, 0.05));
+  color: #B63333;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* Divisi Card */
+.divisi-card {
+  background: white;
+  border-radius: 12px;
+  padding: 30px;
+  border: 2px solid #f0f0f0;
+  transition: all 0.3s ease;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.divisi-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 15px 40px rgba(182, 51, 51, 0.15);
+  border-color: #B63333;
+}
+
+.divisi-nama {
+  color: #B63333;
+  font-weight: 700;
+  font-size: 1.2rem;
+  margin-bottom: 15px;
+}
+
+.divisi-deskripsi {
+  color: #666;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  flex-grow: 1;
+  margin-bottom: 20px;
+}
+
+.divisi-footer {
+  border-top: 1px solid #f0f0f0;
+  padding-top: 20px;
+}
+
+.divisi-anggota {
+  display: flex;
+  align-items: center;
+  color: #B63333;
+  font-weight: 600;
+  justify-content: center;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .struktur-organisasi-section {
+    padding: 60px 0;
+  }
+
+  .struktur-organisasi-section .section-title {
+    font-size: 2rem;
+  }
+
+  .tab-link {
+    padding: 12px 10px !important;
+    font-size: 0.9rem;
+  }
+
+  .tab-content-custom {
+    padding: 25px;
+  }
+
+  .chart-box {
+    min-width: 150px;
+    padding: 15px 20px;
+  }
+
+  .chart-level {
+    gap: 15px;
+  }
+
+  .struktur-chart {
+    padding: 25px 10px;
+  }
+
+  .pengurus-card,
+  .divisi-card {
+    padding: 20px;
+  }
+
+  .pengurus-icon {
+    font-size: 2.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .struktur-organisasi-section .section-title {
+    font-size: 1.5rem;
+  }
+
+  .struktur-tabs {
+    flex-wrap: wrap;
+  }
+
+  .tab-link {
+    flex: 1;
+    min-width: 150px;
+    padding: 10px 8px !important;
+    font-size: 0.8rem;
+  }
+
+  .chart-box {
+    min-width: 120px;
+    padding: 12px 15px;
+    font-size: 0.9rem;
+  }
+
+  .box-title {
+    font-size: 0.85rem;
+  }
+}

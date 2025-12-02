@@ -20,6 +20,7 @@ export default function Navbar() {
             <Nav.Link href="#berita" className="nav-link-custom">Berita</Nav.Link>
             <Nav.Link href="#dokumentasi" className="nav-link-custom">Dokumentasi</Nav.Link>
             <Nav.Link href="#spotify" className="nav-link-custom">Spotify</Nav.Link>
+            <Nav.Link href="#struktur-organisasi" className="nav-link-custom">Struktur</Nav.Link>
             <Nav.Link href="#nara-hubung" className="nav-link-custom">Kontak</Nav.Link>
           </Nav>
         </BSNavbar.Collapse>
