@@ -11,10 +11,6 @@ export default function StrukturOrganisasi() {
   const [activeTab, setActiveTab] = useState('struktur');
   const [activeDivisi, setActiveDivisi] = useState(1);
 
-  if (!organisasiData || !organisasiData.kepengurusan || !organisasiData.divisi) {
-    return <div>Loading...</div>;
-  }
-
   const { kepengurusan, divisi: divisiData } = organisasiData;
 
   return (

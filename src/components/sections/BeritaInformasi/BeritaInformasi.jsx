@@ -13,9 +13,9 @@ export default function BeritaInformasi() {
     {
       id: 1,
       judul: 'Pendaftaran Anggota Baru IBAF UPI 2025 ',
-      tanggal: '1 November 2025',
+      tanggal: '1 Desember 2025',
       author: 'Admin IBAF UPI',
-      deskripsi: 'IBAF UPI membuka pendaftaran anggota baru untuk batch 3 tahun 2025. Bergabunglah dengan kami dan jadilah bagian dari komunitas kebugaran terbaik di UPI!',
+      deskripsi: 'halo!',
       thumbnail: batch3,
       isImage: true
     },
@@ -37,7 +37,23 @@ export default function BeritaInformasi() {
       thumbnail: funrunImg,
       isImage: true
     },
-    
+    {
+      id: 3,
+      judul: 'Fun run IBAF X SBM',
+      tanggal: '19 Oktober 2025',
+      author: 'Admin IBAF UPI',
+      deskripsi: 'IBAF UPI bekerja sama dengan SBM UPI mengadakan acara fun run.',
+      thumbnail: funrunImg,
+      isImage: true
+    },{
+      id: 3,
+      judul: 'Fun run IBAF X SBM',
+      tanggal: '19 Oktober 2025',
+      author: 'Admin IBAF UPI',
+      deskripsi: 'IBAF UPI bekerja sama dengan SBM UPI mengadakan acara fun run.',
+      thumbnail: funrunImg,
+      isImage: true
+    },
   ]);
   return (
     <section className="berita-informasi fade-in-section" ref={ref} id="berita">
