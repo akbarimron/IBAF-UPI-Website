@@ -21,6 +21,9 @@ const AdminDashboard = () => {
   const [filteredUsers, setFilteredUsers] = useState([]);
   const [userFilterTab, setUserFilterTab] = useState('all'); // all, approved, pending, rejected
   const [messages, setMessages] = useState([]);
+  const [userInboxes, setUserInboxes] = useState([]); // Array of users with their message counts
+  const [selectedUserForMessages, setSelectedUserForMessages] = useState(null); // User selected to view messages
+  const [userMessages, setUserMessages] = useState([]); // Messages from selected user
   const [workoutLogs, setWorkoutLogs] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedUserLogs, setSelectedUserLogs] = useState([]);
@@ -79,13 +82,44 @@ const AdminDashboard = () => {
       querySnapshot.forEach((doc) => {
         messagesData.push({ id: doc.id, ...doc.data() });
       });
-      // Sort client-side by createdAt descending
+      
+      // Sort by createdAt descending
       messagesData.sort((a, b) => {
         const dateA = new Date(a.createdAt);
         const dateB = new Date(b.createdAt);
         return dateB - dateA;
       });
+      
       setMessages(messagesData);
+      
+      // Group messages by user for inbox view
+      const inboxMap = new Map();
+      messagesData.forEach(msg => {
+        if (!inboxMap.has(msg.userId)) {
+          inboxMap.set(msg.userId, {
+            userId: msg.userId,
+            userName: msg.userName,
+            userEmail: msg.userEmail,
+            messages: [],
+            unreadCount: 0,
+            lastMessageDate: msg.createdAt
+          });
+        }
+        const inbox = inboxMap.get(msg.userId);
+        inbox.messages.push(msg);
+        if (msg.status === 'pending') inbox.unreadCount++;
+        // Update last message date if newer
+        if (new Date(msg.createdAt) > new Date(inbox.lastMessageDate)) {
+          inbox.lastMessageDate = msg.createdAt;
+        }
+      });
+      
+      // Convert to array and sort by last message date
+      const inboxArray = Array.from(inboxMap.values()).sort((a, b) => {
+        return new Date(b.lastMessageDate) - new Date(a.lastMessageDate);
+      });
+      
+      setUserInboxes(inboxArray);
       
       const pendingCount = messagesData.filter(m => m.status === 'pending').length;
       setStats(prev => ({
@@ -215,11 +249,28 @@ const AdminDashboard = () => {
     try {
       await deleteDoc(doc(db, 'userMessages', messageId));
       fetchMessages();
+      
+      // Refresh selected user messages if viewing
+      if (selectedUserForMessages) {
+        handleViewUserMessages(selectedUserForMessages);
+      }
+      
       alert('Pesan berhasil dihapus');
     } catch (error) {
       console.error('Error deleting message:', error);
       alert('Gagal menghapus pesan');
     }
+  };
+
+  const handleViewUserMessages = (inbox) => {
+    setSelectedUserForMessages(inbox);
+    setUserMessages(inbox.messages);
+  };
+
+  const handleBackToInbox = () => {
+    setSelectedUserForMessages(null);
+    setUserMessages([]);
+    setReplyText('');
   };
 
   const handleViewUserDetails = async (user) => {
@@ -740,82 +791,133 @@ const AdminDashboard = () => {
             </div>
           )}
 
-          {/* Messages Tab */}
+          {/* Messages Tab - Inbox per User */}
           {activeTab === 'messages' && (
             <div className="messages-tab">
-              <h2>Pesan dari Users</h2>
-              
-              {messages.length === 0 ? (
-                <p className="no-data">Belum ada pesan</p>
+              {!selectedUserForMessages ? (
+                <>
+                  <h2>📬 Inbox Pesan User</h2>
+                  <p className="inbox-description">Klik pada user untuk melihat semua pesan dari user tersebut</p>
+                  
+                  {userInboxes.length === 0 ? (
+                    <p className="no-data">Belum ada pesan masuk</p>
+                  ) : (
+                    <div className="inbox-list">
+                      {userInboxes.map((inbox) => (
+                        <div 
+                          key={inbox.userId} 
+                          className={`inbox-card ${inbox.unreadCount > 0 ? 'has-unread' : ''}`}
+                          onClick={() => handleViewUserMessages(inbox)}
+                        >
+                          <div className="inbox-user-avatar">
+                            <div className="avatar-placeholder">
+                              {inbox.userName?.charAt(0).toUpperCase() || 'U'}
+                            </div>
+                          </div>
+                          <div className="inbox-info">
+                            <div className="inbox-header">
+                              <strong className="inbox-user-name">{inbox.userName || 'User'}</strong>
+                              {inbox.unreadCount > 0 && (
+                                <span className="unread-badge">{inbox.unreadCount} baru</span>
+                              )}
+                            </div>
+                            <p className="inbox-email">{inbox.userEmail}</p>
+                            <div className="inbox-stats">
+                              <span className="message-count">
+                                💬 {inbox.messages.length} pesan
+                              </span>
+                              <span className="last-message-date">
+                                🕒 {new Date(inbox.lastMessageDate).toLocaleDateString('id-ID', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                            </div>
+                          </div>
+                          <div className="inbox-arrow">→</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </>
               ) : (
-                <div className="messages-list">
-                  {messages.map((msg) => (
-                    <div key={msg.id} className={`message-card ${msg.status}`}>
-                      <div className="message-header">
-                        <div className="message-user-info">
-                          <strong>{msg.userName}</strong>
-                          <span className="message-email">{msg.userEmail}</span>
+                <>
+                  <div className="messages-header">
+                    <button onClick={handleBackToInbox} className="back-to-inbox-btn">
+                      ← Kembali ke Inbox
+                    </button>
+                    <h2>💬 Pesan dari {selectedUserForMessages.userName}</h2>
+                    <p className="user-email-header">{selectedUserForMessages.userEmail}</p>
+                  </div>
+                  
+                  <div className="messages-thread">
+                    {userMessages.map((msg) => (
+                      <div key={msg.id} className={`message-card ${msg.status}`}>
+                        <div className="message-header">
+                          <div className="message-meta">
+                            <span className={`message-status-badge ${msg.status}`}>
+                              {msg.status === 'pending' ? '⏳ Pending' : 
+                               msg.status === 'read' ? '👁️ Dibaca' : '✓ Dibalas'}
+                            </span>
+                            <span className="message-date">
+                              {new Date(msg.createdAt).toLocaleString('id-ID')}
+                            </span>
+                          </div>
                         </div>
-                        <div className="message-meta">
-                          <span className={`message-status-badge ${msg.status}`}>
-                            {msg.status === 'pending' ? '⏳ Pending' : 
-                             msg.status === 'read' ? '👁️ Dibaca' : '✓ Dibalas'}
-                          </span>
-                          <span className="message-date">
-                            {new Date(msg.createdAt).toLocaleString('id-ID')}
-                          </span>
+
+                        <div className="message-content">
+                          <p>{msg.message}</p>
                         </div>
-                      </div>
 
-                      <div className="message-content">
-                        <p>{msg.message}</p>
-                      </div>
-
-                      {msg.reply && (
-                        <div className="admin-reply-display">
-                          <strong>Balasan Anda:</strong>
-                          <p>{msg.reply}</p>
-                          <span className="reply-date">
-                            Dibalas: {new Date(msg.repliedAt).toLocaleString('id-ID')}
-                          </span>
-                        </div>
-                      )}
-
-                      <div className="message-actions">
-                        {msg.status === 'pending' && (
-                          <button
-                            onClick={() => handleMarkAsRead(msg.id)}
-                            className="btn-mark-read"
-                          >
-                            Tandai Dibaca
-                          </button>
-                        )}
-                        {!msg.reply && (
-                          <div className="reply-form">
-                            <textarea
-                              placeholder="Tulis balasan..."
-                              value={replyText}
-                              onChange={(e) => setReplyText(e.target.value)}
-                              rows="3"
-                            />
-                            <button
-                              onClick={() => handleReplyMessage(msg.id)}
-                              className="btn-reply"
-                            >
-                              Kirim Balasan
-                            </button>
+                        {msg.reply && (
+                          <div className="admin-reply-display">
+                            <strong>Balasan Anda:</strong>
+                            <p>{msg.reply}</p>
+                            <span className="reply-date">
+                              Dibalas: {new Date(msg.repliedAt).toLocaleString('id-ID')}
+                            </span>
                           </div>
                         )}
-                        <button
-                          onClick={() => handleDeleteMessage(msg.id)}
-                          className="btn-delete"
-                        >
-                          Hapus
-                        </button>
+
+                        <div className="message-actions">
+                          {msg.status === 'pending' && (
+                            <button
+                              onClick={() => handleMarkAsRead(msg.id)}
+                              className="btn-mark-read"
+                            >
+                              Tandai Dibaca
+                            </button>
+                          )}
+                          {!msg.reply && (
+                            <div className="reply-form">
+                              <textarea
+                                placeholder="Tulis balasan..."
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                rows="3"
+                              />
+                              <button
+                                onClick={() => handleReplyMessage(msg.id)}
+                                className="btn-reply"
+                              >
+                                Kirim Balasan
+                              </button>
+                            </div>
+                          )}
+                          <button
+                            onClick={() => handleDeleteMessage(msg.id)}
+                            className="btn-delete"
+                          >
+                            Hapus
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                </>
               )}
             </div>
           )}
