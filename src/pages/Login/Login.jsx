@@ -81,54 +81,94 @@ const Login = () => {
 
   return (
     <div className="login-container">
-      <div className="login-card">
-        <h2 className="login-title">Login</h2>
-        <p className="login-subtitle">Masuk ke akun Anda</p>
-        
-        {error && (
-          <div className="error-message">
-            {error}
+      <div className="login-wrapper">
+        {/* Left Side - Promotional */}
+        <div className="login-promo">
+          <div className="promo-content">
+            <div className="promo-logo">
+              <h1>IBAF UPI</h1>
+              <p className="promo-tagline">Ikatan Bodybuilding & Fitness</p>
+            </div>
+            <div className="promo-features">
+              <div className="feature-item">
+                <div className="feature-icon">💪</div>
+                <h3>Training Berkualitas</h3>
+                <p>Program latihan dengan instruktur bersertifikat</p>
+              </div>
+              <div className="feature-item">
+                <div className="feature-icon">🏆</div>
+                <h3>Komunitas Solid</h3>
+                <p>Bergabung dengan komunitas fitness terbaik</p>
+              </div>
+              <div className="feature-item">
+                <div className="feature-icon">📈</div>
+                <h3>Progress Tracking</h3>
+                <p>Pantau perkembangan fitness Anda</p>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
 
-        <form onSubmit={handleSubmit} className="login-form">
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="Masukkan email"
-              disabled={loading}
-              autoComplete="email"
-            />
+        {/* Right Side - Login Form */}
+        <div className="login-form-section">
+          <div className="login-card">
+            <h2 className="login-title">Selamat Datang Kembali!</h2>
+            <p className="login-subtitle">Masuk untuk melanjutkan</p>
+            
+            {error && (
+              <div className="error-message">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="login-form">
+              <div className="form-group">
+                <label htmlFor="email">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="nama@email.com"
+                  disabled={loading}
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="password">Password</label>
+                <input
+                  type="password"
+                  id="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Masukkan password"
+                  disabled={loading}
+                  autoComplete="current-password"
+                />
+              </div>
+
+              <button 
+                type="submit" 
+                className="login-button"
+                disabled={loading}
+              >
+                {loading ? 'Memproses...' : 'Masuk'}
+              </button>
+            </form>
+
+            <div className="divider">
+              <span>atau</span>
+            </div>
+
+            <div className="register-link">
+              Belum punya akun? <Link to="/register">Daftar sekarang</Link>
+            </div>
+
+            <div className="back-home">
+              <Link to="/">← Kembali ke Beranda</Link>
+            </div>
           </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Masukkan password"
-              disabled={loading}
-              autoComplete="current-password"
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            className="login-button"
-            disabled={loading}
-          >
-            {loading ? 'Memproses...' : 'Login'}
-          </button>
-        </form>
-
-        <div className="register-link">
-          Belum punya akun? <Link to="/register">Daftar di sini</Link>
         </div>
       </div>
     </div>

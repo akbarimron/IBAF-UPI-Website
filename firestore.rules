@@ -2,13 +2,31 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
     
-    // Allow all authenticated users to read and write to users collection
-    // This is for development/testing - update for production!
+    // Users collection - all authenticated users can read/write their own data
     match /users/{userId} {
       allow read, write: if request.auth != null;
     }
     
-    // For production, use these rules instead:
+    // Notes collection - users can only access their own notes
+    match /notes/{noteId} {
+      // Allow read if user owns the note
+      allow read: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Allow create if user is authenticated and setting their own userId
+      allow create: if request.auth != null && 
+        request.resource.data.userId == request.auth.uid;
+      
+      // Allow update/delete if user owns the note
+      allow update, delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Admin can read all notes
+      allow read: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
+    // For production security, uncomment these stricter rules:
     // match /users/{userId} {
     //   // Users can read their own data
     //   allow read: if request.auth != null && request.auth.uid == userId;

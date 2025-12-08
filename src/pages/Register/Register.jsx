@@ -87,84 +87,139 @@ const Register = () => {
 
   return (
     <div className="register-container">
-      <div className="register-card">
-        <h2 className="register-title">Daftar</h2>
-        <p className="register-subtitle">Buat akun baru</p>
-        
-        {error && (
-          <div className="error-message">
-            {error}
+      <div className="register-wrapper">
+        {/* Left Side - Promotional */}
+        <div className="register-promo">
+          <div className="promo-content">
+            <div className="promo-logo">
+              <h1>Bergabunglah Bersama Kami</h1>
+              <p className="promo-tagline">IBAF UPI - Ikatan Bodybuilding & Fitness</p>
+            </div>
+            <div className="promo-benefits">
+              <div className="benefit-item">
+                <div className="benefit-icon">✅</div>
+                <div>
+                  <h4>Akses Eksklusif</h4>
+                  <p>Akses penuh ke semua program dan event</p>
+                </div>
+              </div>
+              <div className="benefit-item">
+                <div className="benefit-icon">✅</div>
+                <div>
+                  <h4>Komunitas Aktif</h4>
+                  <p>Networking dengan member se-Indonesia</p>
+                </div>
+              </div>
+              <div className="benefit-item">
+                <div className="benefit-icon">✅</div>
+                <div>
+                  <h4>Tracking Progress</h4>
+                  <p>Pantau dan kelola pencapaian Anda</p>
+                </div>
+              </div>
+              <div className="benefit-item">
+                <div className="benefit-icon">✅</div>
+                <div>
+                  <h4>Berita Terkini</h4>
+                  <p>Update event dan informasi terbaru</p>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
+        </div>
 
-        <form onSubmit={handleSubmit} className="register-form">
-          <div className="form-group">
-            <label htmlFor="name">Nama Lengkap</label>
-            <input
-              type="text"
-              id="name"
-              name="name"
-              value={formData.name}
-              onChange={handleChange}
-              placeholder="Masukkan nama lengkap"
-              disabled={loading}
-              autoComplete="name"
-            />
+        {/* Right Side - Register Form */}
+        <div className="register-form-section">
+          <div className="register-card">
+            <h2 className="register-title">Daftar Akun Baru</h2>
+            <p className="register-subtitle">Bergabung dengan IBAF UPI sekarang</p>
+            
+            {error && (
+              <div className="error-message">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="register-form">
+              <div className="form-group">
+                <label htmlFor="name">Nama Lengkap</label>
+                <input
+                  type="text"
+                  id="name"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Masukkan nama lengkap"
+                  disabled={loading}
+                  autoComplete="name"
+                />
+              </div>
+
+              <div className="form-group">
+                <label htmlFor="email">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  value={formData.email}
+                  onChange={handleChange}
+                  placeholder="nama@email.com"
+                  disabled={loading}
+                  autoComplete="email"
+                />
+              </div>
+
+              <div className="form-row">
+                <div className="form-group">
+                  <label htmlFor="password">Password</label>
+                  <input
+                    type="password"
+                    id="password"
+                    name="password"
+                    value={formData.password}
+                    onChange={handleChange}
+                    placeholder="Minimal 6 karakter"
+                    disabled={loading}
+                    autoComplete="new-password"
+                  />
+                </div>
+
+                <div className="form-group">
+                  <label htmlFor="confirmPassword">Konfirmasi Password</label>
+                  <input
+                    type="password"
+                    id="confirmPassword"
+                    name="confirmPassword"
+                    value={formData.confirmPassword}
+                    onChange={handleChange}
+                    placeholder="Ulangi password"
+                    disabled={loading}
+                    autoComplete="new-password"
+                  />
+                </div>
+              </div>
+
+              <button 
+                type="submit" 
+                className="register-button"
+                disabled={loading}
+              >
+                {loading ? 'Memproses...' : 'Daftar Sekarang'}
+              </button>
+            </form>
+
+            <div className="divider">
+              <span>atau</span>
+            </div>
+
+            <div className="login-link">
+              Sudah punya akun? <Link to="/login">Masuk di sini</Link>
+            </div>
+
+            <div className="back-home">
+              <Link to="/">← Kembali ke Beranda</Link>
+            </div>
           </div>
-
-          <div className="form-group">
-            <label htmlFor="email">Email</label>
-            <input
-              type="email"
-              id="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Masukkan email"
-              disabled={loading}
-              autoComplete="email"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="password">Password</label>
-            <input
-              type="password"
-              id="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Minimal 6 karakter"
-              disabled={loading}
-              autoComplete="new-password"
-            />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="confirmPassword">Konfirmasi Password</label>
-            <input
-              type="password"
-              id="confirmPassword"
-              name="confirmPassword"
-              value={formData.confirmPassword}
-              onChange={handleChange}
-              placeholder="Ulangi password"
-              disabled={loading}
-              autoComplete="new-password"
-            />
-          </div>
-
-          <button 
-            type="submit" 
-            className="register-button"
-            disabled={loading}
-          >
-            {loading ? 'Memproses...' : 'Daftar'}
-          </button>
-        </form>
-
-        <div className="login-link">
-          Sudah punya akun? <Link to="/login">Login di sini</Link>
         </div>
       </div>
     </div>
