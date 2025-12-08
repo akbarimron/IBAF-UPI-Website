@@ -39,7 +39,8 @@ const UserDashboard = () => {
       if (userDoc.exists()) {
         const data = userDoc.data();
         setUserData(data);
-        setName(data.name || '');
+        // Prioritize fullName from verification over name
+        setName(data.fullName || data.name || '');
         setPhotoPreview(data.photoURL || null);
         
         // Check if user needs verification or profile completion
@@ -109,11 +110,12 @@ const UserDashboard = () => {
       // Update Firestore
       await updateDoc(doc(db, 'users', currentUser.uid), {
         name: name.trim(),
+        fullName: name.trim(), // Update fullName as well to keep it in sync
         photoURL: photoURL,
         updatedAt: new Date().toISOString()
       });
 
-      setUserData({ ...userData, name: name.trim(), photoURL });
+      setUserData({ ...userData, name: name.trim(), fullName: name.trim(), photoURL });
       setEditMode(false);
       setPhotoFile(null);
       alert('Profil berhasil diupdate!');
@@ -134,7 +136,7 @@ const UserDashboard = () => {
       await addDoc(collection(db, 'userMessages'), {
         userId: currentUser.uid,
         userEmail: currentUser.email,
-        userName: userData?.name || currentUser.email,
+        userName: userData?.fullName || userData?.name || currentUser.email,
         message: message.trim(),
         status: 'pending',
         createdAt: new Date().toISOString()
@@ -229,11 +231,11 @@ const UserDashboard = () => {
                 <img src={photoPreview} alt="Profile" />
               ) : (
                 <div className="avatar-placeholder">
-                  {userData?.name?.charAt(0).toUpperCase() || 'U'}
+                  {(userData?.fullName || userData?.name)?.charAt(0).toUpperCase() || 'U'}
                 </div>
               )}
             </div>
-            <h3>{userData?.name || 'User'}</h3>
+            <h3>{userData?.fullName || userData?.name || 'User'}</h3>
             <p className="user-email">{currentUser?.email}</p>
             <div className={`account-status ${userData?.isActive ? 'active' : 'inactive'}`}>
               {userData?.isActive !== false ? (
@@ -317,7 +319,7 @@ const UserDashboard = () => {
               </div>
 
               <div className="welcome-message">
-                <h3>Selamat datang, {userData?.name || 'Member'}!</h3>
+                <h3>Selamat datang, {userData?.fullName || userData?.name || 'Member'}!</h3>
                 <p>Gunakan menu di samping untuk mengakses fitur-fitur dashboard Anda.</p>
                 <ul className="feature-list">
                   <li>📝 <strong>Workout Log:</strong> Catat dan pantau progress latihan Anda selama 8 minggu</li>
@@ -397,7 +399,7 @@ const UserDashboard = () => {
                       <img src={photoPreview} alt="Profile" className="profile-photo" />
                     ) : (
                       <div className="profile-photo-placeholder">
-                        {userData?.name?.charAt(0).toUpperCase() || 'U'}
+                        {(userData?.fullName || userData?.name)?.charAt(0).toUpperCase() || 'U'}
                       </div>
                     )}
                   </div>
@@ -430,7 +432,7 @@ const UserDashboard = () => {
                         placeholder="Nama lengkap"
                       />
                     ) : (
-                      <p>{userData?.name || '-'}</p>
+                      <p>{userData?.fullName || userData?.name || '-'}</p>
                     )}
                   </div>
 
@@ -459,7 +461,7 @@ const UserDashboard = () => {
                         </button>
                         <button onClick={() => {
                           setEditMode(false);
-                          setName(userData?.name || '');
+                          setName(userData?.fullName || userData?.name || '');
                           setPhotoFile(null);
                           setPhotoPreview(userData?.photoURL || null);
                         }} className="cancel-btn">
