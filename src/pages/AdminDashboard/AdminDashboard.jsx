@@ -34,6 +34,9 @@ const AdminDashboard = () => {
   const [selectedDayFilter, setSelectedDayFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [replyText, setReplyText] = useState('');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [messageModalData, setMessageModalData] = useState({ userId: '', userName: '', message: '' });
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
@@ -406,21 +409,36 @@ const AdminDashboard = () => {
   };
 
   const handleSendMessageToUser = async (user) => {
-    const message = window.prompt(`Kirim pesan ke ${user.name || user.email}:`);
-    if (!message) return;
+    // Open modal with user data
+    setMessageModalData({
+      userId: user.id,
+      userName: user.name || user.fullName || user.email,
+      userEmail: user.email,
+      message: ''
+    });
+    setShowMessageModal(true);
+  };
+
+  const handleSendMessage = async () => {
+    if (!messageModalData.message.trim()) {
+      alert('Pesan tidak boleh kosong');
+      return;
+    }
 
     try {
       await addDoc(collection(db, 'adminMessages'), {
-        userId: user.id,
-        userEmail: user.email,
-        userName: user.name || user.fullName || 'User',
-        message: message,
+        userId: messageModalData.userId,
+        userEmail: messageModalData.userEmail,
+        userName: messageModalData.userName,
+        message: messageModalData.message,
         sentBy: currentUser.email,
         sentAt: new Date().toISOString(),
         read: false
       });
       
       alert('Pesan berhasil dikirim!');
+      setShowMessageModal(false);
+      setMessageModalData({ userId: '', userName: '', message: '' });
     } catch (error) {
       console.error('Error sending message:', error);
       alert('Gagal mengirim pesan');
@@ -531,6 +549,11 @@ const AdminDashboard = () => {
       <div className="dashboard-header">
         <div className="header-content">
           <div className="brand-section">
+            <button className="hamburger-menu" onClick={() => setSidebarOpen(!sidebarOpen)}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
             <Link to="/" className="back-home-link">
               ← Kembali ke Halaman Utama
             </Link>
@@ -547,7 +570,9 @@ const AdminDashboard = () => {
       {/* Main Content */}
       <div className="dashboard-container">
         {/* Sidebar Navigation */}
-        <div className="dashboard-sidebar">
+        <div className={`dashboard-sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
+          {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)}></div>}
+          <div className="sidebar-content">
           <div className="admin-info-card">
             <div className="admin-avatar">
               <div className="avatar-placeholder">A</div>
@@ -559,21 +584,21 @@ const AdminDashboard = () => {
           <nav className="dashboard-nav">
             <button
               className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveTab('overview')}
+              onClick={() => { setActiveTab('overview'); setSidebarOpen(false); }}
             >
               <span className="nav-icon">▶</span>
               Overview
             </button>
             <button
               className={`nav-item ${activeTab === 'users' ? 'active' : ''}`}
-              onClick={() => setActiveTab('users')}
+              onClick={() => { setActiveTab('users'); setSidebarOpen(false); }}
             >
               <span className="nav-icon">●</span>
               Kelola Users
             </button>
             <button
               className={`nav-item ${activeTab === 'messages' ? 'active' : ''}`}
-              onClick={() => setActiveTab('messages')}
+              onClick={() => { setActiveTab('messages'); setSidebarOpen(false); }}
             >
               <span className="nav-icon">✉</span>
               Pesan Users
@@ -582,6 +607,7 @@ const AdminDashboard = () => {
               )}
             </button>
           </nav>
+          </div>
         </div>
 
         {/* Content Area */}
@@ -675,41 +701,56 @@ const AdminDashboard = () => {
                   className={`filter-tab ${userFilterTab === 'all' ? 'active' : ''}`}
                   onClick={() => filterUsersByTab('all')}
                 >
-                  <span className="tab-icon">●</span>
-                  <span className="tab-label">Semua Users</span>
-                  <span className="tab-count">{users.length}</span>
+                  <div>
+                    <span className="tab-icon">●</span>
+                    <span className="tab-label">Semua Users</span>
+                    <span className="tab-count">{users.length}</span>
+                  </div>
+                  <span className="tab-description">Tampilkan semua pengguna</span>
                 </button>
                 <button 
                   className={`filter-tab ${userFilterTab === 'approved' ? 'active' : ''}`}
                   onClick={() => filterUsersByTab('approved')}
                 >
-                  <span className="tab-icon">✅</span>
-                  <span className="tab-label">Terverifikasi</span>
-                  <span className="tab-count">{users.filter(u => u.verificationStatus === 'approved').length}</span>
+                  <div>
+                    <span className="tab-icon">✅</span>
+                    <span className="tab-label">Terverifikasi</span>
+                    <span className="tab-count">{users.filter(u => u.verificationStatus === 'approved').length}</span>
+                  </div>
+                  <span className="tab-description">User yang sudah disetujui</span>
                 </button>
                 <button 
                   className={`filter-tab ${userFilterTab === 'pending' ? 'active' : ''}`}
                   onClick={() => filterUsersByTab('pending')}
                 >
-                  <span className="tab-icon">⏳</span>
-                  <span className="tab-label">Pending</span>
-                  <span className="tab-count">{users.filter(u => u.verificationStatus === 'pending').length}</span>
+                  <div>
+                    <span className="tab-icon">⏳</span>
+                    <span className="tab-label">Pending</span>
+                    <span className="tab-count">{users.filter(u => u.verificationStatus === 'pending').length}</span>
+                  </div>
+                  <span className="tab-description">Menunggu persetujuan</span>
                 </button>
                 <button 
                   className={`filter-tab ${userFilterTab === 'rejected' ? 'active' : ''}`}
                   onClick={() => filterUsersByTab('rejected')}
                 >
-                  <span className="tab-icon">❌</span>
-                  <span className="tab-label">Ditolak</span>
-                  <span className="tab-count">{users.filter(u => u.verificationStatus === 'rejected').length}</span>
+                  <div>
+                    <span className="tab-icon">❌</span>
+                    <span className="tab-label">Ditolak</span>
+                    <span className="tab-count">{users.filter(u => u.verificationStatus === 'rejected').length}</span>
+                  </div>
+                  <span className="tab-description">Verifikasi ditolak</span>
                 </button>
                 <button 
                   className={`filter-tab ${userFilterTab === 'not_submitted' ? 'active' : ''}`}
                   onClick={() => filterUsersByTab('not_submitted')}
                 >
-                  <span className="tab-icon">⚪</span>
-                  <span className="tab-label">Belum Submit</span>
-                  <span className="tab-count">{users.filter(u => !u.verificationStatus || u.verificationStatus === 'not_submitted').length}</span>
+                  <div>
+                    <span className="tab-icon">⚪</span>
+                    <span className="tab-label">Belum Submit</span>
+                    <span className="tab-count">{users.filter(u => !u.verificationStatus || u.verificationStatus === 'not_submitted').length}</span>
+                  </div>
+                  <span className="tab-description">Belum mengisi verifikasi</span>
                 </button>
               </div>
               
@@ -1129,6 +1170,17 @@ const AdminDashboard = () => {
                         }) : '-'}
                     </span>
                   </div>
+                  
+                  {/* Send Message Button */}
+                  <div className="user-actions-row">
+                    <button 
+                      className="btn-send-message"
+                      onClick={() => handleSendMessageToUser(selectedUser)}
+                    >
+                      <span className="btn-icon">✉️</span>
+                      Kirim Pesan
+                    </button>
+                  </div>
                 </div>
 
                 {/* Verification Data Section */}
@@ -1398,6 +1450,65 @@ const AdminDashboard = () => {
           )}
         </div>
       </div>
+
+      {/* Message Modal */}
+      {showMessageModal && (
+        <div className="modal-overlay" onClick={() => setShowMessageModal(false)}>
+          <div className="message-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>✉️ Kirim Pesan</h3>
+              <button 
+                className="modal-close-btn"
+                onClick={() => setShowMessageModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <div className="recipient-info">
+                <label>Kepada:</label>
+                <div className="recipient-details">
+                  <span className="recipient-name">{messageModalData.userName}</span>
+                  <span className="recipient-email">{messageModalData.userEmail}</span>
+                </div>
+              </div>
+              
+              <div className="message-input-group">
+                <label>Pesan:</label>
+                <textarea
+                  className="message-textarea"
+                  placeholder="Tulis pesan Anda di sini..."
+                  value={messageModalData.message}
+                  onChange={(e) => setMessageModalData({ ...messageModalData, message: e.target.value })}
+                  rows={6}
+                  autoFocus
+                />
+                <div className="char-counter">
+                  {messageModalData.message.length} karakter
+                </div>
+              </div>
+            </div>
+            
+            <div className="modal-footer">
+              <button 
+                className="btn-cancel"
+                onClick={() => setShowMessageModal(false)}
+              >
+                Batal
+              </button>
+              <button 
+                className="btn-send"
+                onClick={handleSendMessage}
+                disabled={!messageModalData.message.trim()}
+              >
+                <span className="btn-icon">📤</span>
+                Kirim Pesan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
