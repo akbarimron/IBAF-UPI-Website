@@ -140,31 +140,13 @@ const Login = () => {
   return (
     <div className="login-container">
       <div className="login-wrapper">
-        {/* Left Side - Promotional */}
+        {/* Left Side - Image */}
         <div className="login-promo">
-          <div className="promo-content">
-            <div className="promo-logo">
-              <h1>IBAF UPI</h1>
-              <p className="promo-tagline">Ikatan Bodybuilding & Fitness</p>
-            </div>
-            <div className="promo-features">
-              <div className="feature-item">
-                <div className="feature-icon">💪</div>
-                <h3>Training Berkualitas</h3>
-                <p>Program latihan dengan instruktur bersertifikat</p>
-              </div>
-              <div className="feature-item">
-                <div className="feature-icon">🏆</div>
-                <h3>Komunitas Solid</h3>
-                <p>Bergabung dengan komunitas fitness terbaik</p>
-              </div>
-              <div className="feature-item">
-                <div className="feature-icon">📈</div>
-                <h3>Progress Tracking</h3>
-                <p>Pantau perkembangan fitness Anda</p>
-              </div>
-            </div>
-          </div>
+          <img 
+            src="/src/img/logo_ibaf.png" 
+            alt="IBAF UPI" 
+            className="promo-image"
+          />
         </div>
 
         {/* Right Side - Login Form */}

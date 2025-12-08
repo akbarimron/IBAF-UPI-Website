@@ -499,8 +499,7 @@ const UserDashboard = () => {
                       </div>
                     )}
                   </div>
-                  {/* Photo upload feature disabled */}
-                  {/* {editMode && (
+                  {editMode && (
                     <div className="photo-upload">
                       <label htmlFor="photo-input" className="upload-btn">
                         📷 Pilih Foto
@@ -514,7 +513,7 @@ const UserDashboard = () => {
                       />
                       <p className="upload-hint">Maksimal 5MB</p>
                     </div>
-                  )} */}
+                  )}
                 </div>
 
                 <div className="profile-info">

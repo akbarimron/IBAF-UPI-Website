@@ -129,44 +129,13 @@ const Register = () => {
   return (
     <div className="register-container">
       <div className="register-wrapper">
-        {/* Left Side - Promotional */}
+        {/* Left Side - Image */}
         <div className="register-promo">
-          <div className="promo-content">
-            <div className="promo-logo">
-              <h1>Bergabunglah Bersama Kami</h1>
-              <p className="promo-tagline">IBAF UPI - Ikatan Bodybuilding & Fitness</p>
-            </div>
-            <div className="promo-benefits">
-              <div className="benefit-item">
-                <div className="benefit-icon">✅</div>
-                <div>
-                  <h4>Akses Eksklusif</h4>
-                  <p>Akses penuh ke semua program dan event</p>
-                </div>
-              </div>
-              <div className="benefit-item">
-                <div className="benefit-icon">✅</div>
-                <div>
-                  <h4>Komunitas Aktif</h4>
-                  <p>Networking dengan member se-Indonesia</p>
-                </div>
-              </div>
-              <div className="benefit-item">
-                <div className="benefit-icon">✅</div>
-                <div>
-                  <h4>Tracking Progress</h4>
-                  <p>Pantau dan kelola pencapaian Anda</p>
-                </div>
-              </div>
-              <div className="benefit-item">
-                <div className="benefit-icon">✅</div>
-                <div>
-                  <h4>Berita Terkini</h4>
-                  <p>Update event dan informasi terbaru</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <img 
+            src="/src/img/logo_ibaf.png" 
+            alt="IBAF UPI" 
+            className="promo-image"
+          />
         </div>
 
         {/* Right Side - Register Form */}
