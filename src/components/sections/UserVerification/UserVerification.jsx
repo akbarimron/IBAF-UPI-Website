@@ -52,6 +52,7 @@ const UserVerification = ({ userData, onUpdate, showNotification }) => {
     try {
       await updateDoc(doc(db, 'users', currentUser.uid), {
         ...formData,
+        name: formData.fullName, // Update name field with fullName
         verificationStatus: 'pending', // pending, approved, rejected
         verificationRequestedAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()

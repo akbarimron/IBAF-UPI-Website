@@ -23,6 +23,36 @@
   align-items: center;
 }
 
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Hamburger Menu */
+.hamburger-menu {
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  z-index: 1001;
+}
+
+.hamburger-menu span {
+  width: 25px;
+  height: 3px;
+  background: #333;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+
+.hamburger-menu:hover span {
+  background: #B63333;
+}
+
 .back-home-link {
   color: #666;
   text-decoration: none;
@@ -707,16 +737,48 @@
 
 /* Responsive */
 @media (max-width: 1024px) {
+  .hamburger-menu {
+    display: flex;
+  }
+
   .dashboard-container {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: 1fr;
+    position: relative;
   }
 
   .dashboard-sidebar {
-    order: -1;
-    flex-direction: row;
-    overflow-x: auto;
-    border-bottom: 1px solid #f0f0f0;
+    position: fixed;
+    left: -100%;
+    top: 0;
+    height: 100vh;
+    width: 300px;
+    background: white;
+    z-index: 1000;
+    transition: left 0.3s ease;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    padding: 20px;
+    flex-direction: column;
+  }
+
+  .dashboard-sidebar.sidebar-open {
+    left: 0;
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+  }
+
+  .sidebar-content {
+    position: relative;
+    z-index: 1001;
   }
 
   .user-info-card {
@@ -980,6 +1042,10 @@
     padding: 0 15px;
   }
 
+  .hamburger-menu {
+    display: flex;
+  }
+
   .back-home-link {
     font-size: 12px;
   }
@@ -991,18 +1057,46 @@
 
   .dashboard-container {
     grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr;
+    grid-template-rows: 1fr;
     gap: 0;
     padding: 0;
+    position: relative;
   }
 
-  /* Sidebar becomes horizontal on mobile */
+  /* Mobile Sidebar */
   .dashboard-sidebar {
-    order: -1;
+    position: fixed;
+    left: -100%;
+    top: 0;
+    height: 100vh;
+    width: 280px;
+    background: white;
+    z-index: 1000;
+    transition: left 0.3s ease;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    overflow-y: auto;
+    padding: 20px;
     flex-direction: column;
     gap: 15px;
-    padding: 15px;
-    border-bottom: 1px solid #f0f0f0;
+  }
+
+  .dashboard-sidebar.sidebar-open {
+    left: 0;
+  }
+
+  .sidebar-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+  }
+
+  .sidebar-content {
+    position: relative;
+    z-index: 1001;
   }
 
   .user-info-card {

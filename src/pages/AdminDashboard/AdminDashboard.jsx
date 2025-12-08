@@ -363,10 +363,15 @@ const AdminDashboard = () => {
     if (!window.confirm(`Setujui verifikasi user ini sebagai ${isIbafMember ? 'Anggota IBAF' : 'Non-Anggota IBAF'}?`)) return;
 
     try {
+      // Get user data first to retrieve fullName
+      const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', userId)));
+      const userData = userDoc.docs[0]?.data();
+      
       await updateDoc(doc(db, 'users', userId), {
         verificationStatus: 'approved',
         isIbafMember: isIbafMember,
         isActive: true,
+        name: userData?.fullName || userData?.name, // Update name with fullName
         approvedAt: new Date().toISOString(),
         approvedBy: currentUser.email
       });

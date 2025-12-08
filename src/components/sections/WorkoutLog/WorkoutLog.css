@@ -195,6 +195,7 @@
   text-align: center;
   font-weight: 600;
   color: #B63333;
+  white-space: nowrap;
 }
 
 .set-input {
@@ -203,6 +204,9 @@
   border-radius: 6px;
   text-align: center;
   font-size: 14px;
+  width: 100%;
+  box-sizing: border-box;
+  min-width: 0;
 }
 
 .set-input:focus {
@@ -214,6 +218,9 @@
   text-align: center;
   font-weight: 600;
   color: #666;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .remove-set-btn {
@@ -537,16 +544,32 @@
     gap: 10px;
   }
 
+  .exercise-block {
+    padding: 15px;
+  }
+
   .sets-header,
   .set-row {
-    grid-template-columns: 40px 1fr 1fr 1fr 35px;
-    gap: 5px;
-    font-size: 12px;
+    grid-template-columns: 35px minmax(60px, 1fr) minmax(60px, 1fr) minmax(70px, 1fr) 35px;
+    gap: 6px;
+    font-size: 11px;
+    padding: 6px;
   }
 
   .set-input {
-    padding: 8px;
-    font-size: 13px;
+    padding: 6px 4px;
+    font-size: 12px;
+    min-width: 50px;
+  }
+
+  .volume-display {
+    font-size: 11px;
+  }
+
+  .remove-set-btn {
+    width: 28px;
+    height: 28px;
+    font-size: 14px;
   }
 
   .days-grid {
@@ -559,10 +582,43 @@
 
   .sets-table {
     font-size: 13px;
+    display: block;
+    overflow-x: auto;
   }
 
   .sets-table th,
   .sets-table td {
     padding: 8px;
+    font-size: 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sets-header,
+  .set-row {
+    grid-template-columns: 30px minmax(50px, 1fr) minmax(50px, 1fr) minmax(60px, 1fr) 30px;
+    gap: 4px;
+    font-size: 10px;
+    padding: 4px;
+  }
+
+  .set-input {
+    padding: 5px 3px;
+    font-size: 11px;
+    min-width: 45px;
+  }
+
+  .volume-display {
+    font-size: 10px;
+  }
+
+  .set-number {
+    font-size: 10px;
+  }
+
+  .remove-set-btn {
+    width: 24px;
+    height: 24px;
+    font-size: 12px;
   }
 }

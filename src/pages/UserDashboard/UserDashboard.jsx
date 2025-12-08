@@ -16,6 +16,7 @@ const UserDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState(null);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
   // Notification state
   const [notification, setNotification] = useState(null);
@@ -205,6 +206,11 @@ const UserDashboard = () => {
       <div className="dashboard-header">
         <div className="header-content">
           <div className="brand-section">
+            <button className="hamburger-menu" onClick={() => setSidebarOpen(!sidebarOpen)}>
+              <span></span>
+              <span></span>
+              <span></span>
+            </button>
             <Link to="/" className="back-home-link">
               ← Kembali ke Halaman Utama
             </Link>
@@ -262,7 +268,9 @@ const UserDashboard = () => {
       ) : (
       <div className="dashboard-container">{/* Regular dashboard content */}
         {/* Sidebar */}
-        <div className="dashboard-sidebar">
+        <div className={`dashboard-sidebar ${sidebarOpen ? 'sidebar-open' : ''}`}>
+          {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)}></div>}
+          <div className="sidebar-content">
           <div className="user-info-card">
             <div className="user-avatar">
               {photoPreview ? (
@@ -293,33 +301,34 @@ const UserDashboard = () => {
           <nav className="dashboard-nav">
             <button
               className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`}
-              onClick={() => setActiveTab('overview')}
+              onClick={() => { setActiveTab('overview'); setSidebarOpen(false); }}
             >
               <span className="nav-icon">●</span>
               Overview
             </button>
             <button
               className={`nav-item ${activeTab === 'workout' ? 'active' : ''}`}
-              onClick={() => setActiveTab('workout')}
+              onClick={() => { setActiveTab('workout'); setSidebarOpen(false); }}
             >
               <span className="nav-icon">▶</span>
               Workout Log
             </button>
             <button
               className={`nav-item ${activeTab === 'messages' ? 'active' : ''}`}
-              onClick={() => setActiveTab('messages')}
+              onClick={() => { setActiveTab('messages'); setSidebarOpen(false); }}
             >
               <span className="nav-icon">✉</span>
               Pesan Admin
             </button>
             <button
               className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
-              onClick={() => setActiveTab('profile')}
+              onClick={() => { setActiveTab('profile'); setSidebarOpen(false); }}
             >
               <span className="nav-icon">◉</span>
               Profile
             </button>
           </nav>
+          </div>
         </div>
 
         {/* Content Area */}
