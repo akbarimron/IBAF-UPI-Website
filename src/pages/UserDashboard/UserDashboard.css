@@ -362,6 +362,50 @@
   font-size: 20px;
 }
 
+.messages-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+.messages-header h3 {
+  margin: 0;
+}
+
+.message-filter-tabs {
+  display: flex;
+  gap: 8px;
+  background: #f0f0f0;
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.filter-tab {
+  padding: 8px 16px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #666;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.filter-tab:hover {
+  color: #B63333;
+  background: rgba(182, 51, 51, 0.1);
+}
+
+.filter-tab.active {
+  background: #B63333;
+  color: white;
+  box-shadow: 0 2px 6px rgba(182, 51, 51, 0.3);
+}
+
 .no-messages {
   text-align: center;
   color: #999;

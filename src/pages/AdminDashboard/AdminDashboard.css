@@ -1705,3 +1705,388 @@
   font-weight: 600;
 }
 
+/* ==================== RESPONSIVE DESIGN FOR ADMIN DASHBOARD ==================== */
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) {
+  .dashboard-container {
+    grid-template-columns: 220px 1fr;
+    gap: 1.2rem;
+    padding: 1.2rem;
+  }
+
+  .header-content {
+    padding: 0.6rem 1.2rem;
+  }
+
+  .admin-badge {
+    padding: 0.35rem 0.8rem;
+    font-size: 0.75rem;
+  }
+
+  .dashboard-nav .nav-item {
+    padding: 0.65rem 1rem;
+    font-size: 0.85rem;
+  }
+
+  .stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .users-table {
+    font-size: 0.85rem;
+  }
+
+  .action-buttons-cell {
+    flex-wrap: wrap;
+  }
+
+  .workout-filters {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+}
+
+/* Mobile (max-width: 767px) */
+@media (max-width: 767px) {
+  /* Header */
+  .header-content {
+    padding: 0.5rem 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  .brand-section .back-home-link {
+    font-size: 0.8rem;
+  }
+
+  .admin-badge {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.7rem;
+  }
+
+  .logout-btn {
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  /* Main Layout - Stack sidebar */
+  .dashboard-container {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+    padding: 1rem;
+  }
+
+  /* Sidebar - Horizontal on mobile */
+  .dashboard-sidebar {
+    order: 2;
+  }
+
+  .admin-info-card {
+    padding: 1rem;
+  }
+
+  .admin-info-card h3 {
+    font-size: 1rem;
+  }
+
+  .admin-email {
+    font-size: 0.75rem;
+  }
+
+  /* Navigation - Horizontal scroll */
+  .dashboard-nav {
+    display: flex;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .dashboard-nav .nav-item {
+    flex: 0 0 auto;
+    min-width: 120px;
+    padding: 0.6rem 0.9rem;
+    font-size: 0.8rem;
+    justify-content: center;
+    border-left: none;
+    border-bottom: 3px solid transparent;
+  }
+
+  .dashboard-nav .nav-item.active {
+    border-left: none;
+    border-bottom: 3px solid #B63333;
+  }
+
+  /* Content Area */
+  .dashboard-content {
+    order: 1;
+    padding: 1.2rem;
+  }
+
+  .dashboard-content h2 {
+    font-size: 1.3rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Stats Grid - Single column */
+  .stat-grid {
+    grid-template-columns: 1fr;
+    gap: 0.8rem;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-icon {
+    font-size: 1.8rem;
+  }
+
+  .stat-content h4 {
+    font-size: 0.75rem;
+  }
+
+  .stat-number {
+    font-size: 1.6rem;
+  }
+
+  /* Quick Actions */
+  .action-buttons {
+    flex-direction: column;
+  }
+
+  .action-btn {
+    width: 100%;
+  }
+
+  /* User Filter Tabs */
+  .user-filter-tabs {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .user-filter-tabs .filter-tab {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  /* Users Table - Card view */
+  .users-table-container {
+    overflow-x: auto;
+  }
+
+  .users-table {
+    min-width: 800px;
+    font-size: 0.75rem;
+  }
+
+  .users-table th,
+  .users-table td {
+    padding: 0.5rem;
+  }
+
+  .action-buttons-cell {
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .action-buttons-cell button {
+    width: 100%;
+    font-size: 0.75rem;
+    padding: 0.4rem 0.6rem;
+  }
+
+  /* Messages */
+  .inbox-list {
+    gap: 0.8rem;
+  }
+
+  .inbox-card {
+    padding: 1rem;
+  }
+
+  .inbox-user-avatar {
+    width: 45px;
+    height: 45px;
+  }
+
+  .inbox-user-name {
+    font-size: 0.95rem;
+  }
+
+  .inbox-email {
+    font-size: 0.75rem;
+  }
+
+  .inbox-stats {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+  }
+
+  /* Message Thread */
+  .messages-header h2 {
+    font-size: 1.2rem;
+  }
+
+  .back-to-inbox-btn {
+    font-size: 0.8rem;
+    padding: 0.5rem 0.9rem;
+  }
+
+  .message-filter-tabs {
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.5rem;
+  }
+
+  .message-filter-tabs .filter-tab {
+    width: 100%;
+    padding: 0.6rem 1rem;
+    font-size: 0.8rem;
+  }
+
+  .message-card {
+    padding: 1rem;
+  }
+
+  .message-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+
+  .message-content p {
+    font-size: 0.85rem;
+  }
+
+  .reply-section textarea {
+    font-size: 0.85rem;
+    min-height: 100px;
+  }
+
+  .reply-actions {
+    flex-direction: column;
+  }
+
+  .reply-actions button {
+    width: 100%;
+  }
+
+  /* Workout Logs */
+  .workout-logs-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .workout-filters {
+    width: 100%;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .filter-group {
+    width: 100%;
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filter-select {
+    width: 100%;
+  }
+
+  .reset-filter-btn {
+    width: 100%;
+  }
+
+  .workout-log-card {
+    padding: 1rem;
+  }
+
+  .exercise-item {
+    padding: 0.8rem;
+  }
+
+  .sets-table-small {
+    font-size: 0.75rem;
+  }
+
+  /* User Details Modal */
+  .user-details-modal {
+    padding: 1rem;
+  }
+
+  .modal-content-details {
+    padding: 1rem;
+    max-height: 70vh;
+  }
+
+  .detail-section h4 {
+    font-size: 1rem;
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .modal-actions-details {
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .modal-actions-details button {
+    width: 100%;
+  }
+}
+
+/* Small Mobile (max-width: 480px) */
+@media (max-width: 480px) {
+  .header-content {
+    padding: 0.4rem 0.8rem;
+  }
+
+  .dashboard-container {
+    padding: 0.75rem;
+  }
+
+  .dashboard-content {
+    padding: 1rem;
+  }
+
+  .dashboard-content h2 {
+    font-size: 1.1rem;
+  }
+
+  .stat-card {
+    padding: 0.9rem;
+  }
+
+  .stat-icon {
+    font-size: 1.5rem;
+  }
+
+  .stat-number {
+    font-size: 1.4rem;
+  }
+
+  .dashboard-nav .nav-item {
+    min-width: 100px;
+    font-size: 0.75rem;
+  }
+
+  .inbox-card {
+    padding: 0.9rem;
+  }
+
+  .message-card {
+    padding: 0.9rem;
+  }
+
+  .users-table {
+    font-size: 0.7rem;
+  }
+}
+
+

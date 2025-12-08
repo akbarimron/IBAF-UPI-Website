@@ -29,6 +29,7 @@ const UserDashboard = () => {
   // Message state
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
+  const [messageFilter, setMessageFilter] = useState('all'); // all, sent, received
 
   // Show notification helper
   const showNotification = (message, type = 'info') => {
@@ -396,11 +397,41 @@ const UserDashboard = () => {
               </div>
 
               <div className="messages-list">
-                <h3>Riwayat Pesan</h3>
-                {messages.length === 0 ? (
+                <div className="messages-header">
+                  <h3>Riwayat Pesan</h3>
+                  <div className="message-filter-tabs">
+                    <button 
+                      className={`filter-tab ${messageFilter === 'all' ? 'active' : ''}`}
+                      onClick={() => setMessageFilter('all')}
+                    >
+                      Semua
+                    </button>
+                    <button 
+                      className={`filter-tab ${messageFilter === 'sent' ? 'active' : ''}`}
+                      onClick={() => setMessageFilter('sent')}
+                    >
+                      Terkirim
+                    </button>
+                    <button 
+                      className={`filter-tab ${messageFilter === 'received' ? 'active' : ''}`}
+                      onClick={() => setMessageFilter('received')}
+                    >
+                      Diterima
+                    </button>
+                  </div>
+                </div>
+                {messages.filter(msg => {
+                  if (messageFilter === 'sent') return msg.type === 'user';
+                  if (messageFilter === 'received') return msg.type === 'admin';
+                  return true;
+                }).length === 0 ? (
                   <p className="no-messages">Belum ada pesan</p>
                 ) : (
-                  messages.map((msg) => (
+                  messages.filter(msg => {
+                    if (messageFilter === 'sent') return msg.type === 'user';
+                    if (messageFilter === 'received') return msg.type === 'admin';
+                    return true;
+                  }).map((msg) => (
                     <div 
                       key={msg.id} 
                       className={`message-item ${msg.type === 'admin' ? 'admin-message' : 'user-message'} ${msg.type === 'admin' && msg.status !== 'read' ? 'unread' : ''}`}

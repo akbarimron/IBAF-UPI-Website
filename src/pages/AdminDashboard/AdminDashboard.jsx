@@ -25,6 +25,7 @@ const AdminDashboard = () => {
   const [userInboxes, setUserInboxes] = useState([]); // Array of users with their message counts
   const [selectedUserForMessages, setSelectedUserForMessages] = useState(null); // User selected to view messages
   const [userMessages, setUserMessages] = useState([]); // Messages from selected user
+  const [messageFilter, setMessageFilter] = useState('all'); // all, received, sent
   const [workoutLogs, setWorkoutLogs] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedUserLogs, setSelectedUserLogs] = useState([]);
@@ -958,8 +959,33 @@ const AdminDashboard = () => {
                     <p className="user-email-header">{selectedUserForMessages.userEmail}</p>
                   </div>
                   
+                  <div className="message-filter-tabs">
+                    <button 
+                      className={`filter-tab ${messageFilter === 'all' ? 'active' : ''}`}
+                      onClick={() => setMessageFilter('all')}
+                    >
+                      Semua Pesan
+                    </button>
+                    <button 
+                      className={`filter-tab ${messageFilter === 'received' ? 'active' : ''}`}
+                      onClick={() => setMessageFilter('received')}
+                    >
+                      Pesan Masuk
+                    </button>
+                    <button 
+                      className={`filter-tab ${messageFilter === 'sent' ? 'active' : ''}`}
+                      onClick={() => setMessageFilter('sent')}
+                    >
+                      Pesan Terkirim
+                    </button>
+                  </div>
+                  
                   <div className="messages-thread">
-                    {userMessages.map((msg) => (
+                    {userMessages.filter(msg => {
+                      if (messageFilter === 'received') return msg.type === 'user';
+                      if (messageFilter === 'sent') return msg.type === 'admin';
+                      return true;
+                    }).map((msg) => (
                       <div key={msg.id} className={`message-card ${msg.type === 'admin' ? 'admin-message' : msg.status}`}>
                         <div className="message-header">
                           <div className="message-meta">
