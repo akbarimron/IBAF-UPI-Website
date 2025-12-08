@@ -33,17 +33,22 @@ const Login = () => {
         const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
         if (userDoc.exists()) {
           userRole = userDoc.data().role || 'user';
+          console.log('Login - User role from Firestore:', userRole);
         }
       } catch (firestoreError) {
         console.warn('Could not fetch user role, using default:', firestoreError);
       }
       
       // Redirect based on role
+      console.log('Login - Redirecting based on role:', userRole);
       if (userRole === 'admin') {
+        console.log('Navigating to /admin');
         navigate('/admin');
       } else if (userRole === 'user') {
+        console.log('Navigating to /dashboard');
         navigate('/dashboard');
       } else {
+        console.log('Navigating to /');
         navigate('/');
       }
     } catch (error) {

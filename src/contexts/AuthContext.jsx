@@ -30,13 +30,22 @@ export const AuthProvider = ({ children }) => {
       await setPersistence(auth, browserLocalPersistence);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
+      console.log('AuthContext - Login successful, UID:', userCredential.user.uid);
+      
       // Get user role from Firestore with error handling
       try {
         const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+        console.log('AuthContext - Firestore doc exists:', userDoc.exists());
+        
         if (userDoc.exists()) {
-          setUserRole(userDoc.data().role || 'user');
+          const userData = userDoc.data();
+          console.log('AuthContext - User data from Firestore:', userData);
+          const role = userData.role || 'user';
+          console.log('AuthContext - Setting role to:', role);
+          setUserRole(role);
         } else {
           // Default role if no document exists
+          console.log('AuthContext - No Firestore doc, using default role: user');
           setUserRole('user');
         }
       } catch (firestoreError) {

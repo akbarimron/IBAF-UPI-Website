@@ -1,99 +1,109 @@
-import React from 'react';
-import { Navbar as BSNavbar, Nav, Container, Button } from 'react-bootstrap';
-import { FaDumbbell, FaUser, FaSignOutAlt, FaSignInAlt } from 'react-icons/fa';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useRef, useEffect } from 'react';
+import { FaUser, FaSignOutAlt, FaTachometerAlt, FaSignInAlt, FaUserPlus } from 'react-icons/fa';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import logoIBAF from '../../../img/logo_ibaf.png';
 import './Navbar.css';
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { currentUser, userRole, logout } = useAuth();
+  const [showDropdown, setShowDropdown] = useState(false);
+  const dropdownRef = useRef(null);
+
+  console.log('Navbar render - currentUser:', currentUser);
+  console.log('Navbar render - userRole:', userRole);
+  console.log('Navbar render - showDropdown:', showDropdown);
+
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleLogout = async () => {
     try {
       await logout();
       navigate('/login');
+      setShowDropdown(false);
     } catch (error) {
       console.error('Logout error:', error);
     }
   };
 
-  const handleLogin = () => {
-    navigate('/login');
-  };
-
   const handleDashboard = () => {
+    console.log('handleDashboard called - userRole:', userRole);
     if (userRole === 'admin') {
+      console.log('Navigating to /admin');
       navigate('/admin');
-    } else if (userRole === 'user') {
+    } else {
+      console.log('Navigating to /dashboard');
       navigate('/dashboard');
     }
+    setShowDropdown(false);
   };
 
-  // Only show navigation links on home page
-  const isHomePage = location.pathname === '/';
-
   return (
-    <BSNavbar bg="dark" expand="lg" className="navbar-custom">
-      <Container>
-        <BSNavbar.Brand onClick={() => navigate('/')} className="brand-logo" style={{ cursor: 'pointer' }}>
+    <nav className="navbar-custom">
+      <div className="navbar-container">
+        <div onClick={() => navigate('/')} className="brand-logo" style={{ cursor: 'pointer' }}>
           <img src={logoIBAF} alt="IBAF UPI Logo" className="logo-img" />
           <span className="brand-text">IBAF UPI</span>
-        </BSNavbar.Brand>
-        <BSNavbar.Toggle aria-controls="basic-navbar-nav" />
-        <BSNavbar.Collapse id="basic-navbar-nav">
-          <Nav className="ms-auto nav-custom">
-            {isHomePage && (
-              <>
-                <Nav.Link href="#informasi-umum" className="nav-link-custom">Informasi</Nav.Link>
-                <Nav.Link href="#ketua-umum" className="nav-link-custom">Ketua Umum</Nav.Link>
-                <Nav.Link href="#berita" className="nav-link-custom">Berita</Nav.Link>
-                <Nav.Link href="#dokumentasi" className="nav-link-custom">Dokumentasi</Nav.Link>
-                <Nav.Link href="#spotify" className="nav-link-custom">Spotify</Nav.Link>
-                <Nav.Link href="#struktur-organisasi" className="nav-link-custom">Struktur</Nav.Link>
-                <Nav.Link href="#nara-hubung" className="nav-link-custom">Kontak</Nav.Link>
-              </>
-            )}
-            
-            {currentUser ? (
-              <>
-                {(userRole === 'admin' || userRole === 'user') && (
-                  <Button 
-                    variant="outline-light" 
-                    size="sm" 
-                    className="ms-2 auth-btn"
-                    onClick={handleDashboard}
-                  >
-                    <FaUser className="me-1" />
-                    Dashboard
-                  </Button>
-                )}
-                <Button 
-                  variant="outline-danger" 
-                  size="sm" 
-                  className="ms-2 auth-btn"
-                  onClick={handleLogout}
-                >
-                  <FaSignOutAlt className="me-1" />
-                  Logout
-                </Button>
-              </>
-            ) : (
-              <Button 
-                variant="outline-light" 
-                size="sm" 
-                className="ms-2 auth-btn"
-                onClick={handleLogin}
+        </div>
+        
+        <div className="navbar-auth">
+          {currentUser ? (
+            <div className="profile-dropdown" ref={dropdownRef}>
+              <button 
+                className="profile-icon"
+                onClick={() => {
+                  console.log('Icon clicked! Current state:', showDropdown);
+                  setShowDropdown(!showDropdown);
+                }}
+                type="button"
               >
-                <FaSignInAlt className="me-1" />
-                Login
-              </Button>
-            )}
-          </Nav>
-        </BSNavbar.Collapse>
-      </Container>
-    </BSNavbar>
+                <FaUser />
+              </button>
+              
+              {showDropdown && (
+                <div className="dropdown-menu-custom">
+                  <div className="dropdown-header">
+                    <div className="dropdown-user-info">
+                      <strong>{currentUser.email}</strong>
+                      <span className="user-role-badge">{userRole}</span>
+                    </div>
+                  </div>
+                  <div className="dropdown-divider"></div>
+                  <button className="dropdown-item" onClick={handleDashboard}>
+                    <FaTachometerAlt />
+                    <span>Dashboard</span>
+                  </button>
+                  <div className="dropdown-divider"></div>
+                  <button className="dropdown-item logout" onClick={handleLogout}>
+                    <FaSignOutAlt />
+                    <span>Logout</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="auth-buttons">
+              <button className="auth-btn login-btn" onClick={() => navigate('/login')}>
+                <FaSignInAlt />
+                <span>Login</span>
+              </button>
+              <button className="auth-btn register-btn" onClick={() => navigate('/register')}>
+                <FaUserPlus />
+                <span>Register</span>
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </nav>
   );
 }

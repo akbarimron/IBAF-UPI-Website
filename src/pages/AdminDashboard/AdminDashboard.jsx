@@ -4,8 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   collection, 
   getDocs, 
-  query, 
-  orderBy,
+  query,
   deleteDoc,
   doc 
 } from 'firebase/firestore';
@@ -56,12 +55,20 @@ const AdminDashboard = () => {
 
   const fetchAllNotes = async () => {
     try {
-      const q = query(collection(db, 'notes'), orderBy('createdAt', 'desc'));
+      const q = query(collection(db, 'notes'));
       const querySnapshot = await getDocs(q);
       const notesData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      
+      // Sort by createdAt on client side
+      notesData.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+        return timeB - timeA;
+      });
+      
       setAllNotes(notesData);
       setStats(prev => ({ 
         ...prev, 

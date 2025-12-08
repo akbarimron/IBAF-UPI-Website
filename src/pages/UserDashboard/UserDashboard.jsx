@@ -10,7 +10,6 @@ import {
   doc, 
   query, 
   where,
-  orderBy,
   serverTimestamp 
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
@@ -38,14 +37,21 @@ const UserDashboard = () => {
     try {
       const q = query(
         collection(db, 'notes'),
-        where('userId', '==', currentUser.uid),
-        orderBy('createdAt', 'desc')
+        where('userId', '==', currentUser.uid)
       );
       const querySnapshot = await getDocs(q);
       const notesData = querySnapshot.docs.map(doc => ({
         id: doc.id,
         ...doc.data()
       }));
+      
+      // Sort by createdAt on client side to handle serverTimestamp issues
+      notesData.sort((a, b) => {
+        const timeA = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+        const timeB = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+        return timeB - timeA;
+      });
+      
       setNotes(notesData);
     } catch (error) {
       console.error('Error fetching notes:', error);
@@ -58,19 +64,26 @@ const UserDashboard = () => {
 
     setLoading(true);
     try {
-      await addDoc(collection(db, 'notes'), {
+      const newNote = {
         ...noteForm,
         userId: currentUser.uid,
         userEmail: currentUser.email,
         createdAt: serverTimestamp(),
         updatedAt: serverTimestamp()
-      });
+      };
+      
+      await addDoc(collection(db, 'notes'), newNote);
+      
       setNoteForm({ title: '', content: '', category: 'personal' });
       setShowNoteForm(false);
-      fetchNotes();
+      
+      // Wait a bit for serverTimestamp to be processed, then fetch
+      setTimeout(() => {
+        fetchNotes();
+      }, 500);
     } catch (error) {
       console.error('Error adding note:', error);
-      alert('Gagal menambahkan catatan');
+      alert('Gagal menambahkan catatan: ' + error.message);
     } finally {
       setLoading(false);
     }
