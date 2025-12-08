@@ -4,7 +4,7 @@ import { db } from '../../../config/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
 import './UserVerification.css';
 
-const UserVerification = ({ userData, onUpdate }) => {
+const UserVerification = ({ userData, onUpdate, showNotification }) => {
   const { currentUser } = useAuth();
   const [formData, setFormData] = useState({
     fullName: userData?.fullName || '',
@@ -31,12 +31,20 @@ const UserVerification = ({ userData, onUpdate }) => {
     
     // Validation
     if (!formData.fullName || !formData.nim || !formData.prodi || !formData.angkatan || !formData.phoneNumber || !formData.jenisKelamin) {
-      alert('Harap isi semua data yang diperlukan');
+      if (showNotification) {
+        showNotification('Harap isi semua data yang diperlukan', 'warning');
+      } else {
+        alert('Harap isi semua data yang diperlukan');
+      }
       return;
     }
 
     if (formData.isIbafMember && !formData.ibafMembershipNumber) {
-      alert('Harap isi nomor keanggotaan IBAF');
+      if (showNotification) {
+        showNotification('Harap isi nomor keanggotaan IBAF', 'warning');
+      } else {
+        alert('Harap isi nomor keanggotaan IBAF');
+      }
       return;
     }
 
@@ -49,11 +57,19 @@ const UserVerification = ({ userData, onUpdate }) => {
         updatedAt: new Date().toISOString()
       });
       
-      alert('Data berhasil dikirim! Menunggu persetujuan admin.');
+      if (showNotification) {
+        showNotification('Data berhasil dikirim! Menunggu persetujuan admin.', 'success');
+      } else {
+        alert('Data berhasil dikirim! Menunggu persetujuan admin.');
+      }
       if (onUpdate) onUpdate();
     } catch (error) {
       console.error('Error submitting verification:', error);
-      alert('Gagal mengirim data. Silakan coba lagi.');
+      if (showNotification) {
+        showNotification('Gagal mengirim data. Silakan coba lagi.', 'error');
+      } else {
+        alert('Gagal mengirim data. Silakan coba lagi.');
+      }
     } finally {
       setLoading(false);
     }

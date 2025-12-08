@@ -16,10 +16,10 @@ const Home = () => {
       <Hero />
       <InformasiUmum />
       <KetuaUmum />
-      <BeritaInformasi />
-      <Dokumentasi />
+      {/* <BeritaInformasi /> */}
+      {/* <Dokumentasi /> */}
       <Spotify />
-      <StrukturOrganisasi />
+      {/* <StrukturOrganisasi /> */}
       <NaraHubung />
       <Footer />
     </div>

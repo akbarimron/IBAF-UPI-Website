@@ -375,6 +375,36 @@
   border-radius: 10px;
   margin-bottom: 15px;
   border-left: 4px solid #B63333;
+  transition: all 0.3s ease;
+}
+
+/* Admin message styling */
+.message-item.admin-message {
+  background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+  border-left: 4px solid #2196f3;
+}
+
+/* User message styling */
+.message-item.user-message {
+  background: #f9f9f9;
+  border-left: 4px solid #B63333;
+}
+
+/* Unread message highlighting */
+.message-item.unread {
+  background: linear-gradient(135deg, #fff9e6 0%, #ffe082 100%);
+  border-left: 4px solid #ff9800;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 6px 16px rgba(255, 152, 0, 0.5);
+  }
 }
 
 .message-header {
@@ -386,9 +416,47 @@
   flex-wrap: wrap;
 }
 
+.message-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.message-sender {
+  font-weight: 700;
+  color: #1a1a1a;
+  font-size: 14px;
+  background: rgba(255, 255, 255, 0.7);
+  padding: 4px 10px;
+  border-radius: 6px;
+}
+
 .message-date {
-  font-size: 13px;
+  font-size: 12px;
   color: #666;
+  font-weight: 500;
+}
+
+.unread-badge {
+  background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  animation: bounce 1s infinite;
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
 }
 
 .message-status {
@@ -807,4 +875,337 @@
   background: #6c757d;
   color: white;
 }
+
+/* ==================== RESPONSIVE DESIGN ==================== */
+
+/* Tablet (768px - 1024px) */
+@media (max-width: 1024px) {
+  .dashboard-container {
+    grid-template-columns: 240px 1fr;
+    gap: 20px;
+    padding: 20px 15px;
+  }
+
+  .user-info-card {
+    padding: 20px;
+  }
+
+  .user-avatar {
+    width: 80px;
+    height: 80px;
+  }
+
+  .avatar-placeholder {
+    font-size: 36px;
+  }
+
+  .dashboard-content {
+    padding: 25px;
+  }
+
+  .dashboard-content h2 {
+    font-size: 24px;
+  }
+
+  .overview-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+  }
+
+  .card-icon {
+    font-size: 32px;
+  }
+
+  .card-content h4 {
+    font-size: 12px;
+  }
+
+  .card-content p {
+    font-size: 18px;
+  }
+}
+
+/* Mobile (max-width: 767px) */
+@media (max-width: 767px) {
+  .header-content {
+    padding: 0 15px;
+  }
+
+  .back-home-link {
+    font-size: 12px;
+  }
+
+  .logout-btn {
+    padding: 8px 16px;
+    font-size: 14px;
+  }
+
+  .dashboard-container {
+    grid-template-columns: 1fr;
+    gap: 20px;
+    padding: 15px;
+  }
+
+  /* Sidebar becomes horizontal on mobile */
+  .dashboard-sidebar {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .user-info-card {
+    padding: 20px;
+  }
+
+  .user-info-card h3 {
+    font-size: 18px;
+  }
+
+  .user-email {
+    font-size: 12px;
+  }
+
+  .user-avatar {
+    width: 70px;
+    height: 70px;
+  }
+
+  .avatar-placeholder {
+    font-size: 30px;
+  }
+
+  /* Navigation horizontal scroll on mobile */
+  .dashboard-nav {
+    display: flex;
+    overflow-x: auto;
+    border-radius: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nav-item {
+    flex: 0 0 auto;
+    min-width: 140px;
+    padding: 12px 16px;
+    border-bottom: none;
+    border-right: 1px solid #f0f0f0;
+    justify-content: center;
+    font-size: 14px;
+  }
+
+  .nav-item:last-child {
+    border-right: none;
+  }
+
+  .nav-icon {
+    font-size: 18px;
+  }
+
+  /* Content */
+  .dashboard-content {
+    padding: 20px 15px;
+  }
+
+  .dashboard-content h2 {
+    font-size: 22px;
+    margin-bottom: 20px;
+  }
+
+  /* Overview grid stacks on mobile */
+  .overview-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .overview-card {
+    padding: 20px;
+  }
+
+  .card-icon {
+    font-size: 28px;
+  }
+
+  .card-content h4 {
+    font-size: 11px;
+  }
+
+  .card-content p {
+    font-size: 16px;
+  }
+
+  /* Welcome message */
+  .welcome-message {
+    padding: 20px 15px;
+  }
+
+  .welcome-message h3 {
+    font-size: 18px;
+  }
+
+  .welcome-message p {
+    font-size: 14px;
+  }
+
+  .feature-list li {
+    font-size: 14px;
+    padding: 10px 0;
+  }
+
+  /* Messages */
+  .message-form-card {
+    padding: 20px 15px;
+  }
+
+  .message-form-card h3 {
+    font-size: 18px;
+  }
+
+  .message-form-card textarea {
+    font-size: 13px;
+    padding: 12px;
+  }
+
+  .message-form-card button {
+    width: 100%;
+    padding: 12px 20px;
+  }
+
+  .message-item {
+    padding: 15px;
+  }
+
+  .message-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .message-date {
+    font-size: 12px;
+  }
+
+  .message-status {
+    font-size: 11px;
+    padding: 3px 10px;
+  }
+
+  .message-text {
+    font-size: 14px;
+  }
+
+  /* Profile */
+  .profile-photo-wrapper {
+    margin-bottom: 20px;
+  }
+
+  .profile-photo,
+  .profile-photo-placeholder {
+    width: 100px;
+    height: 100px;
+  }
+
+  .info-group {
+    padding: 15px;
+  }
+
+  .info-group label {
+    font-size: 13px;
+  }
+
+  .info-group p,
+  .info-group input {
+    font-size: 14px;
+  }
+
+  .profile-actions {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .profile-actions button {
+    width: 100%;
+  }
+
+  /* Verification screens */
+  .verification-pending-container,
+  .verification-rejected-container {
+    padding: 1rem;
+  }
+
+  .pending-card,
+  .rejected-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .pending-icon,
+  .rejected-icon {
+    font-size: 3rem;
+  }
+
+  .pending-card h2,
+  .rejected-card h2 {
+    font-size: 20px;
+  }
+
+  .pending-card p,
+  .rejected-card p {
+    font-size: 14px;
+  }
+
+  .rejected-actions {
+    gap: 0.75rem;
+  }
+
+  .btn-resubmit,
+  .btn-logout-alt {
+    font-size: 14px;
+    padding: 0.875rem;
+  }
+}
+
+/* Small mobile (max-width: 480px) */
+@media (max-width: 480px) {
+  .dashboard-content h2 {
+    font-size: 20px;
+  }
+
+  .user-info-card h3 {
+    font-size: 16px;
+  }
+
+  .nav-item {
+    min-width: 120px;
+    font-size: 13px;
+    gap: 8px;
+  }
+
+  .nav-icon {
+    font-size: 16px;
+  }
+
+  .overview-card {
+    padding: 15px;
+  }
+
+  .card-icon {
+    font-size: 24px;
+  }
+
+  .card-content p {
+    font-size: 14px;
+  }
+
+  .welcome-message h3 {
+    font-size: 16px;
+  }
+
+  .welcome-message p,
+  .feature-list li {
+    font-size: 13px;
+  }
+
+  .message-form-card h3,
+  .messages-list h3 {
+    font-size: 16px;
+  }
+}
+
 

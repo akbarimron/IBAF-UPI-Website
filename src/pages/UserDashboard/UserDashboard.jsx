@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs, onSnapshot } from 'firebase/firestore';
 import { db, storage } from '../../config/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import WorkoutLog from '../../components/sections/WorkoutLog/WorkoutLog';
 import UserVerification from '../../components/sections/UserVerification/UserVerification';
+import Notification from '../../components/Notification/Notification';
 import './UserDashboard.css';
 
 const UserDashboard = () => {
@@ -15,6 +16,9 @@ const UserDashboard = () => {
   const [loading, setLoading] = useState(false);
   const [needsVerification, setNeedsVerification] = useState(false);
   const [verificationStatus, setVerificationStatus] = useState(null);
+  
+  // Notification state
+  const [notification, setNotification] = useState(null);
   
   // Profile state
   const [editMode, setEditMode] = useState(false);
@@ -26,10 +30,57 @@ const UserDashboard = () => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
 
+  // Show notification helper
+  const showNotification = (message, type = 'info') => {
+    setNotification({ message, type });
+  };
+
   useEffect(() => {
     if (currentUser) {
       fetchUserData();
-      fetchMessages();
+      
+      // Real-time listener for messages (both user and admin messages)
+      const qUserMessages = query(
+        collection(db, 'userMessages'),
+        where('userId', '==', currentUser.uid)
+      );
+      
+      const qAdminMessages = query(
+        collection(db, 'adminMessages'),
+        where('userId', '==', currentUser.uid)
+      );
+      
+      // Listen to user messages
+      const unsubscribeUserMessages = onSnapshot(qUserMessages, (snapshot) => {
+        const userMsgs = [];
+        snapshot.forEach((doc) => {
+          userMsgs.push({ id: doc.id, type: 'user', ...doc.data() });
+        });
+        
+        // Listen to admin messages
+        const unsubscribeAdminMessages = onSnapshot(qAdminMessages, (snapshot) => {
+          const adminMsgs = [];
+          snapshot.forEach((doc) => {
+            adminMsgs.push({ id: doc.id, type: 'admin', ...doc.data() });
+          });
+          
+          // Combine and sort all messages
+          const allMessages = [...userMsgs, ...adminMsgs];
+          allMessages.sort((a, b) => {
+            const dateA = new Date(a.createdAt);
+            const dateB = new Date(b.createdAt);
+            return dateB - dateA;
+          });
+          
+          setMessages(allMessages);
+        });
+        
+        // Cleanup admin messages listener
+        return () => unsubscribeAdminMessages();
+      });
+      
+      // Cleanup
+      return () => unsubscribeUserMessages();
     }
   }, [currentUser]);
 
@@ -55,34 +106,11 @@ const UserDashboard = () => {
     }
   };
 
-  const fetchMessages = async () => {
-    try {
-      const q = query(
-        collection(db, 'userMessages'),
-        where('userId', '==', currentUser.uid)
-      );
-      const querySnapshot = await getDocs(q);
-      const msgs = [];
-      querySnapshot.forEach((doc) => {
-        msgs.push({ id: doc.id, ...doc.data() });
-      });
-      // Sort by createdAt descending client-side
-      msgs.sort((a, b) => {
-        const dateA = new Date(a.createdAt);
-        const dateB = new Date(b.createdAt);
-        return dateB - dateA;
-      });
-      setMessages(msgs);
-    } catch (error) {
-      console.error('Error fetching messages:', error);
-    }
-  };
-
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
     if (file) {
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
-        alert('Ukuran foto maksimal 5MB');
+        showNotification('Ukuran foto maksimal 5MB', 'error');
         return;
       }
       setPhotoFile(file);
@@ -92,7 +120,7 @@ const UserDashboard = () => {
 
   const handleSaveProfile = async () => {
     if (!name.trim()) {
-      alert('Nama tidak boleh kosong');
+      showNotification('Nama tidak boleh kosong', 'warning');
       return;
     }
 
@@ -118,10 +146,10 @@ const UserDashboard = () => {
       setUserData({ ...userData, name: name.trim(), fullName: name.trim(), photoURL });
       setEditMode(false);
       setPhotoFile(null);
-      alert('Profil berhasil diupdate!');
+      showNotification('Profil berhasil diupdate!', 'success');
     } catch (error) {
       console.error('Error updating profile:', error);
-      alert('Gagal update profil: ' + error.message);
+      showNotification('Gagal update profil: ' + error.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -143,11 +171,10 @@ const UserDashboard = () => {
       });
 
       setMessage('');
-      fetchMessages();
-      alert('Pesan berhasil dikirim ke admin!');
+      showNotification('Pesan berhasil dikirim ke admin!', 'success');
     } catch (error) {
       console.error('Error sending message:', error);
-      alert('Gagal mengirim pesan');
+      showNotification('Gagal mengirim pesan', 'error');
     } finally {
       setLoading(false);
     }
@@ -163,6 +190,16 @@ const UserDashboard = () => {
 
   return (
     <div className="user-dashboard">
+      {/* Notification System */}
+      {notification && (
+        <Notification
+          message={notification.message}
+          type={notification.type}
+          duration={4000}
+          onClose={() => setNotification(null)}
+        />
+      )}
+      
       {/* Header */}
       <div className="dashboard-header">
         <div className="header-content">
@@ -183,7 +220,7 @@ const UserDashboard = () => {
       
       {/* Show verification form if not verified */}
       {needsVerification && verificationStatus === 'not_submitted' ? (
-        <UserVerification userData={userData} onUpdate={fetchUserData} />
+        <UserVerification userData={userData} onUpdate={fetchUserData} showNotification={showNotification} />
       ) : verificationStatus === 'pending' ? (
         <div className="verification-pending-container">
           <div className="pending-card">
@@ -236,7 +273,7 @@ const UserDashboard = () => {
               )}
             </div>
             <h3>{userData?.fullName || userData?.name || 'User'}</h3>
-            <p className="user-email">{currentUser?.email}</p>
+            <p className="user-email">{userData?.fullName || userData?.name || currentUser?.email}</p>
             <div className={`account-status ${userData?.isActive ? 'active' : 'inactive'}`}>
               {userData?.isActive !== false ? (
                 <>
@@ -257,28 +294,28 @@ const UserDashboard = () => {
               className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`}
               onClick={() => setActiveTab('overview')}
             >
-              <span className="nav-icon">📊</span>
+              <span className="nav-icon">●</span>
               Overview
             </button>
             <button
               className={`nav-item ${activeTab === 'workout' ? 'active' : ''}`}
               onClick={() => setActiveTab('workout')}
             >
-              <span className="nav-icon">💪</span>
+              <span className="nav-icon">▶</span>
               Workout Log
             </button>
             <button
               className={`nav-item ${activeTab === 'messages' ? 'active' : ''}`}
               onClick={() => setActiveTab('messages')}
             >
-              <span className="nav-icon">💬</span>
+              <span className="nav-icon">✉</span>
               Pesan Admin
             </button>
             <button
               className={`nav-item ${activeTab === 'profile' ? 'active' : ''}`}
               onClick={() => setActiveTab('profile')}
             >
-              <span className="nav-icon">👤</span>
+              <span className="nav-icon">◉</span>
               Profile
             </button>
           </nav>
@@ -292,7 +329,7 @@ const UserDashboard = () => {
               <h2>Dashboard Overview</h2>
               <div className="overview-grid">
                 <div className="overview-card">
-                  <div className="card-icon">💪</div>
+                  <div className="card-icon">⚡</div>
                   <div className="card-content">
                     <h4>Status Akun</h4>
                     <p className={userData?.isActive !== false ? 'status-active' : 'status-inactive'}>
@@ -302,7 +339,7 @@ const UserDashboard = () => {
                 </div>
                 
                 <div className="overview-card">
-                  <div className="card-icon">📧</div>
+                  <div className="card-icon">✉</div>
                   <div className="card-content">
                     <h4>Pesan</h4>
                     <p>{messages.length} pesan</p>
@@ -310,7 +347,7 @@ const UserDashboard = () => {
                 </div>
 
                 <div className="overview-card">
-                  <div className="card-icon">👤</div>
+                  <div className="card-icon">◉</div>
                   <div className="card-content">
                     <h4>Member Sejak</h4>
                     <p>{userData?.createdAt ? new Date(userData.createdAt).toLocaleDateString('id-ID') : '-'}</p>
@@ -322,9 +359,9 @@ const UserDashboard = () => {
                 <h3>Selamat datang, {userData?.fullName || userData?.name || 'Member'}!</h3>
                 <p>Gunakan menu di samping untuk mengakses fitur-fitur dashboard Anda.</p>
                 <ul className="feature-list">
-                  <li>📝 <strong>Workout Log:</strong> Catat dan pantau progress latihan Anda selama 8 minggu</li>
-                  <li>💬 <strong>Pesan Admin:</strong> Kirim pertanyaan atau laporan ke admin</li>
-                  <li>👤 <strong>Profile:</strong> Update informasi dan foto profil Anda</li>
+                  <li>▶ <strong>Workout Log:</strong> Catat dan pantau progress latihan Anda selama 8 minggu</li>
+                  <li>✉ <strong>Pesan Admin:</strong> Kirim pertanyaan atau laporan ke admin</li>
+                  <li>◉ <strong>Profile:</strong> Update informasi dan foto profil Anda</li>
                 </ul>
               </div>
             </div>
@@ -364,14 +401,33 @@ const UserDashboard = () => {
                   <p className="no-messages">Belum ada pesan</p>
                 ) : (
                   messages.map((msg) => (
-                    <div key={msg.id} className="message-item">
+                    <div 
+                      key={msg.id} 
+                      className={`message-item ${msg.type === 'admin' ? 'admin-message' : 'user-message'} ${msg.type === 'admin' && msg.status !== 'read' ? 'unread' : ''}`}
+                    >
                       <div className="message-header">
-                        <span className="message-date">
-                          {new Date(msg.createdAt).toLocaleString('id-ID')}
-                        </span>
-                        <span className={`message-status ${msg.status}`}>
-                          {msg.status === 'pending' ? 'Menunggu' : msg.status === 'read' ? 'Dibaca' : 'Dibalas'}
-                        </span>
+                        <div className="message-meta">
+                          <span className="message-sender">
+                            {msg.type === 'admin' ? '👨‍💼 Admin' : '👤 Anda'}
+                          </span>
+                          <span className="message-date">
+                            {new Date(msg.createdAt).toLocaleString('id-ID', { 
+                              day: '2-digit', 
+                              month: 'short', 
+                              year: 'numeric',
+                              hour: '2-digit', 
+                              minute: '2-digit' 
+                            })}
+                          </span>
+                        </div>
+                        {msg.type === 'admin' && msg.status !== 'read' && (
+                          <span className="unread-badge">Baru</span>
+                        )}
+                        {msg.type === 'user' && (
+                          <span className={`message-status ${msg.status}`}>
+                            {msg.status === 'pending' ? '⏳ Menunggu' : msg.status === 'read' ? '✓ Dibaca' : '✓✓ Dibalas'}
+                          </span>
+                        )}
                       </div>
                       <p className="message-text">{msg.message}</p>
                       {msg.reply && (
