@@ -9,7 +9,8 @@ import {
   query,
   where,
   deleteDoc,
-  addDoc
+  addDoc,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import './AdminDashboard.css';
@@ -39,47 +40,12 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    setLoading(true);
-    try {
-      await Promise.all([fetchUsers(), fetchMessages()]);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchUsers = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, 'users'));
-      const usersData = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      }));
-      setUsers(usersData);
-      setFilteredUsers(usersData);
-      
-      const activeCount = usersData.filter(u => u.isActive !== false).length;
-      const pendingVerifications = usersData.filter(u => u.verificationStatus === 'pending').length;
-      setStats(prev => ({
-        ...prev,
-        totalUsers: usersData.length,
-        activeUsers: activeCount,
-        pendingVerifications: pendingVerifications
-      }));
-    } catch (error) {
-      console.error('Error fetching users:', error);
-    }
-  };
-
-  const fetchMessages = async () => {
-    try {
-      const querySnapshot = await getDocs(collection(db, 'userMessages'));
+    
+    // Set up real-time listener for messages
+    const messagesQuery = collection(db, 'userMessages');
+    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
       const messagesData = [];
-      querySnapshot.forEach((doc) => {
+      snapshot.forEach((doc) => {
         messagesData.push({ id: doc.id, ...doc.data() });
       });
       
@@ -121,14 +87,57 @@ const AdminDashboard = () => {
       
       setUserInboxes(inboxArray);
       
+      // Update selected user messages if viewing
+      if (selectedUserForMessages) {
+        const updatedInbox = inboxArray.find(inbox => inbox.userId === selectedUserForMessages.userId);
+        if (updatedInbox) {
+          setUserMessages(updatedInbox.messages);
+        }
+      }
+      
       const pendingCount = messagesData.filter(m => m.status === 'pending').length;
       setStats(prev => ({
         ...prev,
         totalMessages: messagesData.length,
         pendingMessages: pendingCount
       }));
+    });
+    
+    // Cleanup listener on unmount
+    return () => unsubscribe();
+  }, []);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      await fetchUsers();
     } catch (error) {
-      console.error('Error fetching messages:', error);
+      console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, 'users'));
+      const usersData = querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setUsers(usersData);
+      setFilteredUsers(usersData);
+      
+      const activeCount = usersData.filter(u => u.isActive !== false).length;
+      const pendingVerifications = usersData.filter(u => u.verificationStatus === 'pending').length;
+      setStats(prev => ({
+        ...prev,
+        totalUsers: usersData.length,
+        activeUsers: activeCount,
+        pendingVerifications: pendingVerifications
+      }));
+    } catch (error) {
+      console.error('Error fetching users:', error);
     }
   };
 
@@ -223,7 +232,6 @@ const AdminDashboard = () => {
       });
       
       setReplyText('');
-      fetchMessages();
       alert('Balasan berhasil dikirim');
     } catch (error) {
       console.error('Error replying message:', error);
@@ -237,7 +245,6 @@ const AdminDashboard = () => {
         status: 'read',
         readAt: new Date().toISOString()
       });
-      fetchMessages();
     } catch (error) {
       console.error('Error marking as read:', error);
     }
@@ -248,13 +255,6 @@ const AdminDashboard = () => {
 
     try {
       await deleteDoc(doc(db, 'userMessages', messageId));
-      fetchMessages();
-      
-      // Refresh selected user messages if viewing
-      if (selectedUserForMessages) {
-        handleViewUserMessages(selectedUserForMessages);
-      }
-      
       alert('Pesan berhasil dihapus');
     } catch (error) {
       console.error('Error deleting message:', error);
@@ -420,6 +420,24 @@ const AdminDashboard = () => {
 
   const calculateTotalVolume = (logs) => {
     return logs.reduce((total, log) => total + (log.totalVolume || 0), 0);
+  };
+
+  const groupLogsByWeek = (logs) => {
+    const grouped = {};
+    logs.forEach(log => {
+      const week = log.week || 1;
+      if (!grouped[week]) {
+        grouped[week] = [];
+      }
+      grouped[week].push(log);
+    });
+    
+    // Sort each week's logs by day
+    Object.keys(grouped).forEach(week => {
+      grouped[week].sort((a, b) => (a.day || 0) - (b.day || 0));
+    });
+    
+    return grouped;
   };
 
   return (
@@ -1123,43 +1141,59 @@ const AdminDashboard = () => {
                     </div>
 
                     <div className="workout-logs-list">
-                      {selectedUserLogs.map((log) => (
-                        <div key={log.id} className="workout-log-card">
-                          <div className="log-header">
-                            <h4>Minggu {log.week} - {log.dayName}</h4>
-                            <span className="log-date">
-                              {new Date(log.createdAt).toLocaleDateString('id-ID')}
+                      {Object.entries(groupLogsByWeek(selectedUserLogs))
+                        .sort(([weekA], [weekB]) => parseInt(weekA) - parseInt(weekB))
+                        .map(([week, weekLogs]) => (
+                        <div key={week} className="week-group">
+                          <div className="week-header">
+                            <h3>Minggu {week}</h3>
+                            <span className="week-stats">
+                              {weekLogs.length} workout{weekLogs.length > 1 ? 's' : ''} • 
+                              Total: {calculateTotalVolume(weekLogs).toFixed(1)} kg
                             </span>
                           </div>
-                          <div className="log-exercises">
-                            {log.exercises.map((exercise, idx) => (
-                              <div key={idx} className="exercise-item">
-                                <h5>{exercise.name}</h5>
-                                <table className="sets-table-small">
-                                  <thead>
-                                    <tr>
-                                      <th>Set</th>
-                                      <th>Weight</th>
-                                      <th>Reps</th>
-                                      <th>Volume</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {exercise.sets.map((set, setIdx) => (
-                                      <tr key={setIdx}>
-                                        <td>{setIdx + 1}</td>
-                                        <td>{set.weight} kg</td>
-                                        <td>{set.reps}</td>
-                                        <td>{(parseFloat(set.weight) * parseInt(set.reps)).toFixed(1)} kg</td>
-                                      </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
+                          
+                          <div className="week-logs">
+                            {weekLogs.map((log) => (
+                              <div key={log.id} className="workout-log-card">
+                                <div className="log-header">
+                                  <h4>{log.dayName || `Hari ${log.day}`}</h4>
+                                  <span className="log-date">
+                                    {new Date(log.createdAt).toLocaleDateString('id-ID')}
+                                  </span>
+                                </div>
+                                <div className="log-exercises">
+                                  {log.exercises.map((exercise, idx) => (
+                                    <div key={idx} className="exercise-item">
+                                      <h5>{exercise.name}</h5>
+                                      <table className="sets-table-small">
+                                        <thead>
+                                          <tr>
+                                            <th>Set</th>
+                                            <th>Weight</th>
+                                            <th>Reps</th>
+                                            <th>Volume</th>
+                                          </tr>
+                                        </thead>
+                                        <tbody>
+                                          {exercise.sets.map((set, setIdx) => (
+                                            <tr key={setIdx}>
+                                              <td>{setIdx + 1}</td>
+                                              <td>{set.weight} kg</td>
+                                              <td>{set.reps}</td>
+                                              <td>{(parseFloat(set.weight) * parseInt(set.reps)).toFixed(1)} kg</td>
+                                            </tr>
+                                          ))}
+                                        </tbody>
+                                      </table>
+                                    </div>
+                                  ))}
+                                </div>
+                                <div className="log-total">
+                                  <strong>Total Volume: {(log.totalVolume || 0).toFixed(1)} kg</strong>
+                                </div>
                               </div>
                             ))}
-                          </div>
-                          <div className="log-total">
-                            <strong>Total Volume: {log.totalVolume.toFixed(1)} kg</strong>
                           </div>
                         </div>
                       ))}
