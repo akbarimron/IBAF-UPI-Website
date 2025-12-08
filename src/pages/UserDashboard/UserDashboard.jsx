@@ -5,6 +5,7 @@ import { doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs } fro
 import { db, storage } from '../../config/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import WorkoutLog from '../../components/sections/WorkoutLog/WorkoutLog';
+import UserVerification from '../../components/sections/UserVerification/UserVerification';
 import './UserDashboard.css';
 
 const UserDashboard = () => {
@@ -12,6 +13,8 @@ const UserDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [userData, setUserData] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [needsVerification, setNeedsVerification] = useState(false);
+  const [verificationStatus, setVerificationStatus] = useState(null);
   
   // Profile state
   const [editMode, setEditMode] = useState(false);
@@ -38,6 +41,13 @@ const UserDashboard = () => {
         setUserData(data);
         setName(data.name || '');
         setPhotoPreview(data.photoURL || null);
+        
+        // Check if user needs verification or profile completion
+        const hasBasicProfile = data.fullName && data.nim && data.prodi;
+        const status = data.verificationStatus || 'not_submitted';
+        
+        setVerificationStatus(status);
+        setNeedsVerification(!hasBasicProfile || status === 'not_submitted');
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
@@ -168,7 +178,49 @@ const UserDashboard = () => {
       </div>
 
       {/* Main Content */}
-      <div className="dashboard-container">
+      
+      {/* Show verification form if not verified */}
+      {needsVerification && verificationStatus === 'not_submitted' ? (
+        <UserVerification userData={userData} onUpdate={fetchUserData} />
+      ) : verificationStatus === 'pending' ? (
+        <div className="verification-pending-container">
+          <div className="pending-card">
+            <div className="pending-icon">⏳</div>
+            <h2>Menunggu Verifikasi</h2>
+            <p>Data Anda sedang diproses oleh admin. Mohon tunggu hingga akun Anda disetujui.</p>
+            <div className="pending-info">
+              <p><strong>Status:</strong> Pending</p>
+              <p><strong>Dikirim:</strong> {userData?.verificationRequestedAt ? new Date(userData.verificationRequestedAt).toLocaleDateString('id-ID') : '-'}</p>
+            </div>
+            <button onClick={handleLogout} className="btn-logout-alt">Logout</button>
+          </div>
+        </div>
+      ) : verificationStatus === 'rejected' ? (
+        <div className="verification-rejected-container">
+          <div className="rejected-card">
+            <div className="rejected-icon">❌</div>
+            <h2>Verifikasi Ditolak</h2>
+            <p>Maaf, data verifikasi Anda ditolak oleh admin.</p>
+            {userData?.rejectionReason && (
+              <div className="rejection-reason">
+                <strong>Alasan:</strong>
+                <p>{userData.rejectionReason}</p>
+              </div>
+            )}
+            <p>Silakan hubungi admin untuk informasi lebih lanjut atau kirim ulang data yang benar.</p>
+            <div className="rejected-actions">
+              <button onClick={() => {
+                setNeedsVerification(true);
+                setVerificationStatus('not_submitted');
+              }} className="btn-resubmit">
+                📝 Kirim Ulang Data
+              </button>
+              <button onClick={handleLogout} className="btn-logout-alt">Logout</button>
+            </div>
+          </div>
+        </div>
+      ) : (
+      <div className="dashboard-container">{/* Regular dashboard content */}
         {/* Sidebar */}
         <div className="dashboard-sidebar">
           <div className="user-info-card">
@@ -425,6 +477,7 @@ const UserDashboard = () => {
           )}
         </div>
       </div>
+      )}
     </div>
   );
 };

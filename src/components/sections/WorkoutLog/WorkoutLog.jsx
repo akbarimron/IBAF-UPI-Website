@@ -14,6 +14,8 @@ const WorkoutLog = () => {
   ]);
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editLogId, setEditLogId] = useState(null);
 
   const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
   const totalWeeks = 8;
@@ -135,11 +137,60 @@ const WorkoutLog = () => {
     }
   };
 
+  const handleEdit = (log) => {
+    setEditMode(true);
+    setEditLogId(log.id);
+    setSelectedDay(log.day);
+    setExercises(log.exercises);
+    setShowForm(true);
+  };
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+    
+    if (!exercises.some(ex => ex.name.trim())) {
+      alert('Minimal satu exercise harus diisi');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const validExercises = exercises.filter(ex => ex.name.trim());
+      const totalVolume = calculateVolume(validExercises);
+
+      await updateDoc(doc(db, 'workoutLogs', editLogId), {
+        exercises: validExercises,
+        totalVolume: totalVolume,
+        updatedAt: new Date().toISOString()
+      });
+
+      setExercises([{ name: '', sets: [{ weight: '', reps: '' }] }]);
+      setShowForm(false);
+      setEditMode(false);
+      setEditLogId(null);
+      fetchWorkoutLogs();
+      alert('Workout log berhasil diupdate!');
+    } catch (error) {
+      console.error('Error updating workout log:', error);
+      alert('Gagal mengupdate workout log');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditMode(false);
+    setEditLogId(null);
+    setExercises([{ name: '', sets: [{ weight: '', reps: '' }] }]);
+    setShowForm(false);
+  };
+
   const deleteWorkoutLog = async (logId) => {
     if (window.confirm('Hapus workout log ini?')) {
       try {
         await deleteDoc(doc(db, 'workoutLogs', logId));
         fetchWorkoutLogs();
+        alert('Workout log berhasil dihapus');
       } catch (error) {
         console.error('Error deleting workout log:', error);
         alert('Gagal menghapus workout log');
@@ -182,12 +233,13 @@ const WorkoutLog = () => {
         </button>
       </div>
 
-      {/* Add Workout Form */}
+      {/* Add/Edit Workout Form */}
       {showForm && (
         <div className="workout-form-card">
-          <h3>Tambah Workout - Minggu {currentWeek}</h3>
-          <form onSubmit={handleSubmit}>
+          <h3>{editMode ? `Edit Workout - Minggu ${currentWeek} - ${days[selectedDay - 1]}` : `Tambah Workout - Minggu ${currentWeek}`}</h3>
+          <form onSubmit={editMode ? handleUpdate : handleSubmit}>
             {/* Day Selector */}
+            {!editMode && (
             <div className="form-group">
               <label>Pilih Hari</label>
               <select 
@@ -202,6 +254,7 @@ const WorkoutLog = () => {
                 ))}
               </select>
             </div>
+            )}
 
             {/* Exercises */}
             <div className="exercises-container">
@@ -298,11 +351,11 @@ const WorkoutLog = () => {
 
             <div className="form-actions">
               <button type="submit" className="submit-btn" disabled={loading}>
-                {loading ? 'Menyimpan...' : 'Simpan Workout'}
+                {loading ? (editMode ? 'Mengupdate...' : 'Menyimpan...') : (editMode ? 'Update Workout' : 'Simpan Workout')}
               </button>
               <button 
                 type="button" 
-                onClick={() => setShowForm(false)} 
+                onClick={editMode ? handleCancelEdit : () => setShowForm(false)} 
                 className="cancel-btn"
               >
                 Batal
@@ -355,10 +408,28 @@ const WorkoutLog = () => {
           {workoutLogs.map((log) => (
             <div key={log.id} className="log-detail-card">
               <div className="log-header">
-                <h4>{log.dayName}</h4>
-                <span className="log-date">
-                  {new Date(log.createdAt).toLocaleDateString('id-ID')}
-                </span>
+                <div>
+                  <h4>{log.dayName}</h4>
+                  <span className="log-date">
+                    {new Date(log.createdAt).toLocaleDateString('id-ID')}
+                  </span>
+                </div>
+                <div className="log-actions">
+                  <button 
+                    onClick={() => handleEdit(log)}
+                    className="btn-edit-log"
+                    title="Edit Workout"
+                  >
+                    ✏️ Edit
+                  </button>
+                  <button 
+                    onClick={() => deleteWorkoutLog(log.id)}
+                    className="btn-delete-log"
+                    title="Hapus Workout"
+                  >
+                    🗑️ Hapus
+                  </button>
+                </div>
               </div>
               {log.exercises.map((exercise, idx) => (
                 <div key={idx} className="exercise-detail">

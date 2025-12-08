@@ -59,6 +59,26 @@ service cloud.firestore {
       allow read, delete: if request.auth != null && 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
+    
+    // Admin Messages collection (admin sends messages to users)
+    match /adminMessages/{messageId} {
+      // Users can read messages sent to them
+      allow read: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
+      // Only admin can create messages
+      allow create: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Admin can read, update, delete all messages
+      allow read, update, delete: if request.auth != null && 
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      
+      // Users can mark as read
+      allow update: if request.auth != null && 
+        resource.data.userId == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+    }
   }
 }
 

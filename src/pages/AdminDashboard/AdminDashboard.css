@@ -512,6 +512,37 @@
   transform: scale(1.1);
 }
 
+.btn-approve {
+  background: #28a745;
+  color: white;
+}
+
+.btn-approve:hover {
+  background: #218838;
+  transform: scale(1.1);
+}
+
+.btn-reject {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-reject:hover {
+  background: #c82333;
+  transform: scale(1.1);
+}
+
+.btn-message {
+  background: #007bff;
+  color: white;
+}
+
+.btn-message:hover {
+  background: #0056b3;
+  transform: scale(1.1);
+}
+
+
 /* Messages Tab */
 .messages-list {
   display: flex;

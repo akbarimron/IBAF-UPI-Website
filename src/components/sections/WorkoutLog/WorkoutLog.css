@@ -419,7 +419,48 @@
 .log-date {
   color: #666;
   font-size: 14px;
+  display: block;
+  margin-top: 5px;
 }
+
+.log-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.btn-edit-log,
+.btn-delete-log {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.btn-edit-log {
+  background: #17a2b8;
+  color: white;
+}
+
+.btn-edit-log:hover {
+  background: #138496;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(23, 162, 184, 0.3);
+}
+
+.btn-delete-log {
+  background: #dc3545;
+  color: white;
+}
+
+.btn-delete-log:hover {
+  background: #c82333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(220, 53, 69, 0.3);
+}
+
 
 .exercise-detail {
   margin-bottom: 25px;

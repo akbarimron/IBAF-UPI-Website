@@ -8,7 +8,8 @@ import {
   updateDoc,
   query,
   where,
-  deleteDoc
+  deleteDoc,
+  addDoc
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
 import './AdminDashboard.css';
@@ -26,6 +27,7 @@ const AdminDashboard = () => {
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
+    pendingVerifications: 0,
     totalMessages: 0,
     pendingMessages: 0
   });
@@ -55,10 +57,12 @@ const AdminDashboard = () => {
       setUsers(usersData);
       
       const activeCount = usersData.filter(u => u.isActive !== false).length;
+      const pendingVerifications = usersData.filter(u => u.verificationStatus === 'pending').length;
       setStats(prev => ({
         ...prev,
         totalUsers: usersData.length,
-        activeUsers: activeCount
+        activeUsers: activeCount,
+        pendingVerifications: pendingVerifications
       }));
     } catch (error) {
       console.error('Error fetching users:', error);
@@ -221,6 +225,69 @@ const AdminDashboard = () => {
     setActiveTab('user-detail');
   };
 
+  const handleApproveUser = async (userId, isIbafMember) => {
+    if (!window.confirm(`Setujui verifikasi user ini sebagai ${isIbafMember ? 'Anggota IBAF' : 'Non-Anggota IBAF'}?`)) return;
+
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        verificationStatus: 'approved',
+        isIbafMember: isIbafMember,
+        isActive: true,
+        approvedAt: new Date().toISOString(),
+        approvedBy: currentUser.email
+      });
+      
+      fetchUsers();
+      alert('User berhasil disetujui!');
+    } catch (error) {
+      console.error('Error approving user:', error);
+      alert('Gagal menyetujui user');
+    }
+  };
+
+  const handleRejectUser = async (userId) => {
+    const reason = window.prompt('Masukkan alasan penolakan:');
+    if (!reason) return;
+
+    try {
+      await updateDoc(doc(db, 'users', userId), {
+        verificationStatus: 'rejected',
+        isActive: false,
+        rejectionReason: reason,
+        rejectedAt: new Date().toISOString(),
+        rejectedBy: currentUser.email
+      });
+      
+      fetchUsers();
+      alert('User ditolak');
+    } catch (error) {
+      console.error('Error rejecting user:', error);
+      alert('Gagal menolak user');
+    }
+  };
+
+  const handleSendMessageToUser = async (user) => {
+    const message = window.prompt(`Kirim pesan ke ${user.name || user.email}:`);
+    if (!message) return;
+
+    try {
+      await addDoc(collection(db, 'adminMessages'), {
+        userId: user.id,
+        userEmail: user.email,
+        userName: user.name || user.fullName || 'User',
+        message: message,
+        sentBy: currentUser.email,
+        sentAt: new Date().toISOString(),
+        read: false
+      });
+      
+      alert('Pesan berhasil dikirim!');
+    } catch (error) {
+      console.error('Error sending message:', error);
+      alert('Gagal mengirim pesan');
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -316,6 +383,14 @@ const AdminDashboard = () => {
                   </div>
                 </div>
 
+                <div className="stat-card pending">
+                  <div className="stat-icon">📋</div>
+                  <div className="stat-content">
+                    <h4>Pending Verifikasi</h4>
+                    <p className="stat-number">{stats.pendingVerifications}</p>
+                  </div>
+                </div>
+
                 <div className="stat-card">
                   <div className="stat-icon">💬</div>
                   <div className="stat-content">
@@ -377,8 +452,9 @@ const AdminDashboard = () => {
                       <th>Nama</th>
                       <th>Email</th>
                       <th>Role</th>
+                      <th>Verifikasi</th>
+                      <th>Member IBAF</th>
                       <th>Status</th>
-                      <th>Bergabung</th>
                       <th>Aksi</th>
                     </tr>
                   </thead>
@@ -406,6 +482,24 @@ const AdminDashboard = () => {
                           </span>
                         </td>
                         <td>
+                          {user.verificationStatus === 'pending' ? (
+                            <span className="badge-pending">⏳ Pending</span>
+                          ) : user.verificationStatus === 'approved' ? (
+                            <span className="badge-active">✓ Disetujui</span>
+                          ) : user.verificationStatus === 'rejected' ? (
+                            <span className="badge-inactive">❌ Ditolak</span>
+                          ) : (
+                            <span className="badge-inactive">⚪ Belum Submit</span>
+                          )}
+                        </td>
+                        <td>
+                          {user.isIbafMember ? (
+                            <span className="badge-active">✓ Member</span>
+                          ) : (
+                            <span style={{color: '#6c757d'}}>-</span>
+                          )}
+                        </td>
+                        <td>
                           {user.isBanned ? (
                             <span className="status-badge banned">🚫 Banned</span>
                           ) : user.isActive !== false ? (
@@ -413,9 +507,6 @@ const AdminDashboard = () => {
                           ) : (
                             <span className="status-badge inactive">✗ Tidak Aktif</span>
                           )}
-                        </td>
-                        <td>
-                          {user.createdAt ? new Date(user.createdAt).toLocaleDateString('id-ID') : '-'}
                         </td>
                         <td>
                           <div className="action-buttons-cell">
@@ -426,6 +517,34 @@ const AdminDashboard = () => {
                             >
                               👁️
                             </button>
+                            
+                            {user.verificationStatus === 'pending' && user.role !== 'admin' && (
+                              <>
+                                <button
+                                  onClick={() => handleApproveUser(user.id, user.isIbafMember)}
+                                  className="btn-approve"
+                                  title="Setujui Verifikasi"
+                                >
+                                  ✓
+                                </button>
+                                <button
+                                  onClick={() => handleRejectUser(user.id)}
+                                  className="btn-reject"
+                                  title="Tolak Verifikasi"
+                                >
+                                  ❌
+                                </button>
+                              </>
+                            )}
+                            
+                            <button
+                              onClick={() => handleSendMessageToUser(user)}
+                              className="btn-message"
+                              title="Kirim Pesan"
+                            >
+                              💬
+                            </button>
+                            
                             {user.role !== 'admin' && (
                               <>
                                 <button
