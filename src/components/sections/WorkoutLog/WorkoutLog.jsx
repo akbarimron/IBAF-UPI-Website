@@ -9,6 +9,7 @@ const WorkoutLog = () => {
   const [workoutLogs, setWorkoutLogs] = useState([]);
   const [currentWeek, setCurrentWeek] = useState(1);
   const [selectedDay, setSelectedDay] = useState(1);
+  const [workoutDate, setWorkoutDate] = useState(new Date().toISOString().split('T')[0]);
   const [exercises, setExercises] = useState([
     { name: '', sets: [{ weight: '', reps: '' }] }
   ]);
@@ -116,6 +117,7 @@ const WorkoutLog = () => {
         week: currentWeek,
         day: selectedDay,
         dayName: days[selectedDay - 1],
+        workoutDate: workoutDate,
         exercises: exercises.filter(ex => ex.name.trim()),
         totalVolume: totalVolume,
         createdAt: new Date().toISOString(),
@@ -126,6 +128,7 @@ const WorkoutLog = () => {
       
       // Reset form
       setExercises([{ name: '', sets: [{ weight: '', reps: '' }] }]);
+      setWorkoutDate(new Date().toISOString().split('T')[0]);
       setShowForm(false);
       fetchWorkoutLogs();
       alert('Workout log berhasil disimpan!');
@@ -141,6 +144,7 @@ const WorkoutLog = () => {
     setEditMode(true);
     setEditLogId(log.id);
     setSelectedDay(log.day);
+    setWorkoutDate(log.workoutDate || new Date().toISOString().split('T')[0]);
     setExercises(log.exercises);
     setShowForm(true);
   };
@@ -159,12 +163,14 @@ const WorkoutLog = () => {
       const totalVolume = calculateVolume(validExercises);
 
       await updateDoc(doc(db, 'workoutLogs', editLogId), {
+        workoutDate: workoutDate,
         exercises: validExercises,
         totalVolume: totalVolume,
         updatedAt: new Date().toISOString()
       });
 
       setExercises([{ name: '', sets: [{ weight: '', reps: '' }] }]);
+      setWorkoutDate(new Date().toISOString().split('T')[0]);
       setShowForm(false);
       setEditMode(false);
       setEditLogId(null);
@@ -238,6 +244,19 @@ const WorkoutLog = () => {
         <div className="workout-form-card">
           <h3>{editMode ? `Edit Workout - Minggu ${currentWeek} - ${days[selectedDay - 1]}` : `Tambah Workout - Minggu ${currentWeek}`}</h3>
           <form onSubmit={editMode ? handleUpdate : handleSubmit}>
+            {/* Date Input */}
+            <div className="form-group">
+              <label>Tanggal Workout</label>
+              <input 
+                type="date" 
+                value={workoutDate}
+                onChange={(e) => setWorkoutDate(e.target.value)}
+                className="date-input"
+                max={new Date().toISOString().split('T')[0]}
+                required
+              />
+            </div>
+
             {/* Day Selector */}
             {!editMode && (
             <div className="form-group">
@@ -411,7 +430,12 @@ const WorkoutLog = () => {
                 <div>
                   <h4>{log.dayName}</h4>
                   <span className="log-date">
-                    {new Date(log.createdAt).toLocaleDateString('id-ID')}
+                    {log.workoutDate ? new Date(log.workoutDate + 'T00:00:00').toLocaleDateString('id-ID', {
+                      weekday: 'long',
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    }) : new Date(log.createdAt).toLocaleDateString('id-ID')}
                   </span>
                 </div>
                 <div className="log-actions">

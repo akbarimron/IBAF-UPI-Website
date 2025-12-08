@@ -44,70 +44,119 @@ const AdminDashboard = () => {
   useEffect(() => {
     fetchData();
     
-    // Set up real-time listener for messages
-    const messagesQuery = collection(db, 'userMessages');
-    const unsubscribe = onSnapshot(messagesQuery, (snapshot) => {
-      const messagesData = [];
-      snapshot.forEach((doc) => {
-        messagesData.push({ id: doc.id, ...doc.data() });
-      });
-      
-      // Sort by createdAt descending
-      messagesData.sort((a, b) => {
-        const dateA = new Date(a.createdAt);
-        const dateB = new Date(b.createdAt);
-        return dateB - dateA;
-      });
-      
-      setMessages(messagesData);
-      
-      // Group messages by user for inbox view
-      const inboxMap = new Map();
-      messagesData.forEach(msg => {
-        if (!inboxMap.has(msg.userId)) {
-          inboxMap.set(msg.userId, {
-            userId: msg.userId,
-            userName: msg.userName,
-            userEmail: msg.userEmail,
-            messages: [],
-            unreadCount: 0,
-            lastMessageDate: msg.createdAt
-          });
-        }
-        const inbox = inboxMap.get(msg.userId);
-        inbox.messages.push(msg);
-        if (msg.status === 'pending') inbox.unreadCount++;
-        // Update last message date if newer
-        if (new Date(msg.createdAt) > new Date(inbox.lastMessageDate)) {
-          inbox.lastMessageDate = msg.createdAt;
-        }
-      });
-      
-      // Convert to array and sort by last message date
-      const inboxArray = Array.from(inboxMap.values()).sort((a, b) => {
-        return new Date(b.lastMessageDate) - new Date(a.lastMessageDate);
-      });
-      
-      setUserInboxes(inboxArray);
-      
-      // Update selected user messages if viewing
-      if (selectedUserForMessages) {
-        const updatedInbox = inboxArray.find(inbox => inbox.userId === selectedUserForMessages.userId);
-        if (updatedInbox) {
-          setUserMessages(updatedInbox.messages);
-        }
-      }
-      
-      const pendingCount = messagesData.filter(m => m.status === 'pending').length;
-      setStats(prev => ({
-        ...prev,
-        totalMessages: messagesData.length,
-        pendingMessages: pendingCount
-      }));
+    // Set up real-time listeners for both user messages and admin messages
+    const userMessagesQuery = collection(db, 'userMessages');
+    const adminMessagesQuery = collection(db, 'adminMessages');
+    
+    const unsubscribeUserMessages = onSnapshot(userMessagesQuery, () => {
+      combineAndProcessMessages();
     });
     
-    // Cleanup listener on unmount
-    return () => unsubscribe();
+    const unsubscribeAdminMessages = onSnapshot(adminMessagesQuery, () => {
+      combineAndProcessMessages();
+    });
+    
+    const combineAndProcessMessages = async () => {
+      try {
+        // Fetch user messages
+        const userMsgsSnapshot = await getDocs(collection(db, 'userMessages'));
+        const userMessagesData = [];
+        userMsgsSnapshot.forEach((doc) => {
+          userMessagesData.push({ 
+            id: doc.id, 
+            ...doc.data(),
+            type: 'user',
+            createdAt: doc.data().createdAt
+          });
+        });
+        
+        // Fetch admin messages
+        const adminMsgsSnapshot = await getDocs(collection(db, 'adminMessages'));
+        const adminMessagesData = [];
+        adminMsgsSnapshot.forEach((doc) => {
+          adminMessagesData.push({ 
+            id: doc.id, 
+            ...doc.data(),
+            type: 'admin',
+            createdAt: doc.data().sentAt
+          });
+        });
+        
+        // Combine all messages
+        const allMessages = [...userMessagesData, ...adminMessagesData];
+        
+        // Sort by createdAt descending
+        allMessages.sort((a, b) => {
+          const dateA = new Date(a.createdAt);
+          const dateB = new Date(b.createdAt);
+          return dateB - dateA;
+        });
+        
+        setMessages(allMessages);
+        
+        // Group messages by user for inbox view
+        const inboxMap = new Map();
+        allMessages.forEach(msg => {
+          if (!inboxMap.has(msg.userId)) {
+            inboxMap.set(msg.userId, {
+              userId: msg.userId,
+              userName: msg.userName,
+              userEmail: msg.userEmail,
+              messages: [],
+              unreadCount: 0,
+              lastMessageDate: msg.createdAt
+            });
+          }
+          const inbox = inboxMap.get(msg.userId);
+          inbox.messages.push(msg);
+          if (msg.type === 'user' && msg.status === 'pending') inbox.unreadCount++;
+          // Update last message date if newer
+          if (new Date(msg.createdAt) > new Date(inbox.lastMessageDate)) {
+            inbox.lastMessageDate = msg.createdAt;
+          }
+        });
+        
+        // Convert to array and sort by last message date
+        const inboxArray = Array.from(inboxMap.values()).sort((a, b) => {
+          return new Date(b.lastMessageDate) - new Date(a.lastMessageDate);
+        });
+        
+        // Sort messages within each inbox
+        inboxArray.forEach(inbox => {
+          inbox.messages.sort((a, b) => {
+            return new Date(a.createdAt) - new Date(b.createdAt);
+          });
+        });
+        
+        setUserInboxes(inboxArray);
+        
+        // Update selected user messages if viewing
+        if (selectedUserForMessages) {
+          const updatedInbox = inboxArray.find(inbox => inbox.userId === selectedUserForMessages.userId);
+          if (updatedInbox) {
+            setUserMessages(updatedInbox.messages);
+          }
+        }
+        
+        const pendingCount = userMessagesData.filter(m => m.status === 'pending').length;
+        setStats(prev => ({
+          ...prev,
+          totalMessages: userMessagesData.length,
+          pendingMessages: pendingCount
+        }));
+      } catch (error) {
+        console.error('Error combining messages:', error);
+      }
+    };
+    
+    // Initial load
+    combineAndProcessMessages();
+    
+    // Cleanup listeners on unmount
+    return () => {
+      unsubscribeUserMessages();
+      unsubscribeAdminMessages();
+    };
   }, []);
 
   const fetchData = async () => {
@@ -903,16 +952,29 @@ const AdminDashboard = () => {
                   
                   <div className="messages-thread">
                     {userMessages.map((msg) => (
-                      <div key={msg.id} className={`message-card ${msg.status}`}>
+                      <div key={msg.id} className={`message-card ${msg.type === 'admin' ? 'admin-message' : msg.status}`}>
                         <div className="message-header">
                           <div className="message-meta">
-                            <span className={`message-status-badge ${msg.status}`}>
-                              {msg.status === 'pending' ? '⏳ Pending' : 
-                               msg.status === 'read' ? '👁️ Dibaca' : '✓ Dibalas'}
-                            </span>
-                            <span className="message-date">
-                              {new Date(msg.createdAt).toLocaleString('id-ID')}
-                            </span>
+                            {msg.type === 'admin' ? (
+                              <>
+                                <span className="message-status-badge admin-sent">
+                                  📤 Anda kirim
+                                </span>
+                                <span className="message-date">
+                                  {new Date(msg.createdAt).toLocaleString('id-ID')}
+                                </span>
+                              </>
+                            ) : (
+                              <>
+                                <span className={`message-status-badge ${msg.status}`}>
+                                  {msg.status === 'pending' ? '⏳ Pending' : 
+                                   msg.status === 'read' ? '👁️ Dibaca' : '✓ Dibalas'}
+                                </span>
+                                <span className="message-date">
+                                  {new Date(msg.createdAt).toLocaleString('id-ID')}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
 
@@ -920,7 +982,7 @@ const AdminDashboard = () => {
                           <p>{msg.message}</p>
                         </div>
 
-                        {msg.reply && (
+                        {msg.type === 'user' && msg.reply && (
                           <div className="admin-reply-display">
                             <strong>Balasan Anda:</strong>
                             <p>{msg.reply}</p>
@@ -930,38 +992,40 @@ const AdminDashboard = () => {
                           </div>
                         )}
 
-                        <div className="message-actions">
-                          {msg.status === 'pending' && (
-                            <button
-                              onClick={() => handleMarkAsRead(msg.id)}
-                              className="btn-mark-read"
-                            >
-                              Tandai Dibaca
-                            </button>
-                          )}
-                          {!msg.reply && (
-                            <div className="reply-form">
-                              <textarea
-                                placeholder="Tulis balasan..."
-                                value={replyText}
-                                onChange={(e) => setReplyText(e.target.value)}
-                                rows="3"
-                              />
+                        {msg.type === 'user' && (
+                          <div className="message-actions">
+                            {msg.status === 'pending' && (
                               <button
-                                onClick={() => handleReplyMessage(msg.id)}
-                                className="btn-reply"
+                                onClick={() => handleMarkAsRead(msg.id)}
+                                className="btn-mark-read"
                               >
-                                Kirim Balasan
+                                Tandai Dibaca
                               </button>
-                            </div>
-                          )}
-                          <button
-                            onClick={() => handleDeleteMessage(msg.id)}
-                            className="btn-delete"
-                          >
-                            Hapus
-                          </button>
-                        </div>
+                            )}
+                            {!msg.reply && (
+                              <div className="reply-form">
+                                <textarea
+                                  placeholder="Tulis balasan..."
+                                  value={replyText}
+                                  onChange={(e) => setReplyText(e.target.value)}
+                                  rows="3"
+                                />
+                                <button
+                                  onClick={() => handleReplyMessage(msg.id)}
+                                  className="btn-reply"
+                                >
+                                  Kirim Balasan
+                                </button>
+                              </div>
+                            )}
+                            <button
+                              onClick={() => handleDeleteMessage(msg.id)}
+                              className="btn-delete"
+                            >
+                              Hapus
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -1243,7 +1307,12 @@ const AdminDashboard = () => {
                                   <div className="log-header">
                                     <h4>{log.dayName || `Hari ${log.day}`}</h4>
                                     <span className="log-date">
-                                      {new Date(log.createdAt).toLocaleDateString('id-ID')}
+                                      {log.workoutDate ? new Date(log.workoutDate + 'T00:00:00').toLocaleDateString('id-ID', {
+                                        weekday: 'long',
+                                        year: 'numeric',
+                                        month: 'long',
+                                        day: 'numeric'
+                                      }) : new Date(log.createdAt).toLocaleDateString('id-ID')}
                                     </span>
                                   </div>
                                   <div className="log-exercises">
