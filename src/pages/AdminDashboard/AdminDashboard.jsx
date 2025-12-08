@@ -530,7 +530,7 @@ const AdminDashboard = () => {
             </Link>
           </div>
           <div className="header-actions">
-            <span className="admin-badge">👑 Admin</span>
+            <span className="admin-badge">⚡ Admin</span>
             <button onClick={handleLogout} className="logout-btn">
               Logout
             </button>
@@ -555,21 +555,21 @@ const AdminDashboard = () => {
               className={`nav-item ${activeTab === 'overview' ? 'active' : ''}`}
               onClick={() => setActiveTab('overview')}
             >
-              <span className="nav-icon">📊</span>
+              <span className="nav-icon">▶</span>
               Overview
             </button>
             <button
               className={`nav-item ${activeTab === 'users' ? 'active' : ''}`}
               onClick={() => setActiveTab('users')}
             >
-              <span className="nav-icon">👥</span>
+              <span className="nav-icon">●</span>
               Kelola Users
             </button>
             <button
               className={`nav-item ${activeTab === 'messages' ? 'active' : ''}`}
               onClick={() => setActiveTab('messages')}
             >
-              <span className="nav-icon">💬</span>
+              <span className="nav-icon">✉</span>
               Pesan Users
               {stats.pendingMessages > 0 && (
                 <span className="badge">{stats.pendingMessages}</span>
@@ -587,7 +587,7 @@ const AdminDashboard = () => {
               
               <div className="stats-grid">
                 <div className="stat-card">
-                  <div className="stat-icon">👥</div>
+                  <div className="stat-icon">●</div>
                   <div className="stat-content">
                     <h4>Total Users</h4>
                     <p className="stat-number">{stats.totalUsers}</p>
@@ -611,7 +611,7 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="stat-card">
-                  <div className="stat-icon">💬</div>
+                  <div className="stat-icon">✉</div>
                   <div className="stat-content">
                     <h4>Total Pesan</h4>
                     <p className="stat-number">{stats.totalMessages}</p>
@@ -631,10 +631,10 @@ const AdminDashboard = () => {
                 <h3>Quick Actions</h3>
                 <div className="action-buttons">
                   <button onClick={() => setActiveTab('users')} className="action-btn">
-                    👥 Kelola Users
+                    ● Kelola Users
                   </button>
                   <button onClick={() => setActiveTab('messages')} className="action-btn">
-                    💬 Lihat Pesan
+                    ✉ Lihat Pesan
                   </button>
                 </div>
               </div>
@@ -644,7 +644,7 @@ const AdminDashboard = () => {
                 <div className="activity-list">
                   {messages.slice(0, 5).map((msg) => (
                     <div key={msg.id} className="activity-item">
-                      <div className="activity-icon">💬</div>
+                      <div className="activity-icon">✉</div>
                       <div className="activity-content">
                         <p><strong>{msg.userName}</strong> mengirim pesan</p>
                         <span className="activity-time">
@@ -669,7 +669,7 @@ const AdminDashboard = () => {
                   className={`filter-tab ${userFilterTab === 'all' ? 'active' : ''}`}
                   onClick={() => filterUsersByTab('all')}
                 >
-                  <span className="tab-icon">👥</span>
+                  <span className="tab-icon">●</span>
                   <span className="tab-label">Semua Users</span>
                   <span className="tab-count">{users.length}</span>
                 </button>
@@ -811,9 +811,10 @@ const AdminDashboard = () => {
                             <button
                               onClick={() => handleViewUserDetails(user)}
                               className="btn-view"
-                              title="👁️ Lihat detail lengkap user termasuk data verifikasi dan workout logs"
+                              title="Lihat detail lengkap user termasuk data verifikasi dan workout logs"
                             >
-                              👁️
+                              <span className="btn-icon">👁</span>
+                              <span className="btn-text">Lihat</span>
                             </button>
                             
                             {user.verificationStatus === 'pending' && user.role !== 'admin' && (
@@ -821,16 +822,18 @@ const AdminDashboard = () => {
                                 <button
                                   onClick={() => handleApproveUser(user.id, user.isIbafMember)}
                                   className="btn-approve"
-                                  title="✓ Setujui verifikasi user - User dapat akses dashboard penuh"
+                                  title="Setujui verifikasi user - User dapat akses dashboard penuh"
                                 >
-                                  ✓
+                                  <span className="btn-icon">✓</span>
+                                  <span className="btn-text">Setujui</span>
                                 </button>
                                 <button
                                   onClick={() => handleRejectUser(user.id)}
                                   className="btn-reject"
-                                  title="❌ Tolak verifikasi user - Akan diminta alasan penolakan"
+                                  title="Tolak verifikasi user - Akan diminta alasan penolakan"
                                 >
-                                  ❌
+                                  <span className="btn-icon">✕</span>
+                                  <span className="btn-text">Tolak</span>
                                 </button>
                               </>
                             )}
@@ -838,9 +841,10 @@ const AdminDashboard = () => {
                             <button
                               onClick={() => handleSendMessageToUser(user)}
                               className="btn-message"
-                              title="💬 Kirim pesan pribadi ke user - Pesan akan muncul di dashboard user"
+                              title="Kirim pesan pribadi ke user - Pesan akan muncul di dashboard user"
                             >
-                              💬
+                              <span className="btn-icon">✉</span>
+                              <span className="btn-text">Pesan</span>
                             </button>
                             
                             {user.role !== 'admin' && (
@@ -848,33 +852,37 @@ const AdminDashboard = () => {
                                 <button
                                   onClick={() => handleToggleUserStatus(user.id, user.isActive !== false)}
                                   className={user.isActive !== false ? 'btn-deactivate' : 'btn-activate'}
-                                  title={user.isActive !== false ? '⏸️ Nonaktifkan user - User tidak dapat login' : '▶️ Aktifkan user - User dapat login kembali'}
+                                  title={user.isActive !== false ? 'Nonaktifkan user - User tidak dapat login' : 'Aktifkan user - User dapat login kembali'}
                                 >
-                                  {user.isActive !== false ? '⏸️' : '▶️'}
+                                  <span className="btn-icon">{user.isActive !== false ? '⏸' : '▶'}</span>
+                                  <span className="btn-text">{user.isActive !== false ? 'Nonaktifkan' : 'Aktifkan'}</span>
                                 </button>
                                 {user.isBanned ? (
                                   <button
                                     onClick={() => handleUnbanUser(user.id)}
                                     className="btn-unban"
-                                    title="✓ Unban user - Cabut status banned"
+                                    title="Unban user - Cabut status banned"
                                   >
-                                    ✓
+                                    <span className="btn-icon">✓</span>
+                                    <span className="btn-text">Unban</span>
                                   </button>
                                 ) : (
                                   <button
                                     onClick={() => handleBanUser(user.id)}
                                     className="btn-ban"
-                                    title="🚫 Ban user - User akan di-banned permanen"
+                                    title="Ban user - User akan di-banned permanen"
                                   >
-                                    🚫
+                                    <span className="btn-icon">⊝</span>
+                                    <span className="btn-text">Ban</span>
                                   </button>
                                 )}
                                 <button
                                   onClick={() => handleDeleteUser(user.id, user.name || user.email)}
                                   className="btn-delete-user"
-                                  title="🗑️ HAPUS AKUN - Menghapus user dan semua datanya secara permanen (TIDAK DAPAT DIBATALKAN!)"
+                                  title="HAPUS AKUN - Menghapus user dan semua datanya secara permanen (TIDAK DAPAT DIBATALKAN!)"
                                 >
-                                  🗑️
+                                  <span className="btn-icon">🗑</span>
+                                  <span className="btn-text">Hapus</span>
                                 </button>
                               </>
                             )}
@@ -921,7 +929,7 @@ const AdminDashboard = () => {
                             <p className="inbox-email">{inbox.userEmail}</p>
                             <div className="inbox-stats">
                               <span className="message-count">
-                                💬 {inbox.messages.length} pesan
+                                ✉ {inbox.messages.length} pesan
                               </span>
                               <span className="last-message-date">
                                 🕒 {new Date(inbox.lastMessageDate).toLocaleDateString('id-ID', {
@@ -946,7 +954,7 @@ const AdminDashboard = () => {
                     <button onClick={handleBackToInbox} className="back-to-inbox-btn">
                       ← Kembali ke Inbox
                     </button>
-                    <h2>💬 Pesan dari {selectedUserForMessages.userName}</h2>
+                    <h2>✉ Pesan dari {selectedUserForMessages.userName}</h2>
                     <p className="user-email-header">{selectedUserForMessages.userEmail}</p>
                   </div>
                   
