@@ -709,20 +709,25 @@
 @media (max-width: 1024px) {
   .dashboard-container {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
   }
 
   .dashboard-sidebar {
+    order: -1;
     flex-direction: row;
     overflow-x: auto;
+    border-bottom: 1px solid #f0f0f0;
   }
 
   .user-info-card {
     min-width: 250px;
+    flex-shrink: 0;
   }
 
   .dashboard-nav {
     display: flex;
     min-width: 600px;
+    flex-shrink: 0;
   }
 
   .nav-item {
@@ -986,18 +991,23 @@
 
   .dashboard-container {
     grid-template-columns: 1fr;
-    gap: 20px;
-    padding: 15px;
+    grid-template-rows: auto 1fr;
+    gap: 0;
+    padding: 0;
   }
 
   /* Sidebar becomes horizontal on mobile */
   .dashboard-sidebar {
+    order: -1;
     flex-direction: column;
     gap: 15px;
+    padding: 15px;
+    border-bottom: 1px solid #f0f0f0;
   }
 
   .user-info-card {
     padding: 20px;
+    min-width: auto;
   }
 
   .user-info-card h3 {
