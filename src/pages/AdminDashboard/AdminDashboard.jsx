@@ -18,6 +18,7 @@ const AdminDashboard = () => {
   const { currentUser, logout } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
   const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
   const [messages, setMessages] = useState([]);
   const [workoutLogs, setWorkoutLogs] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -55,6 +56,7 @@ const AdminDashboard = () => {
         ...doc.data()
       }));
       setUsers(usersData);
+      setFilteredUsers(usersData);
       
       const activeCount = usersData.filter(u => u.isActive !== false).length;
       const pendingVerifications = usersData.filter(u => u.verificationStatus === 'pending').length;
@@ -444,6 +446,27 @@ const AdminDashboard = () => {
             <div className="users-tab">
               <h2>Kelola Users</h2>
               
+              <div className="table-controls">
+                <input 
+                  type="text" 
+                  placeholder="🔍 Cari nama atau email..." 
+                  className="search-input"
+                  onChange={(e) => {
+                    const value = e.target.value.toLowerCase();
+                    if (!value.trim()) {
+                      setFilteredUsers(users);
+                    } else {
+                      const filtered = users.filter(u => 
+                        u.name?.toLowerCase().includes(value) || 
+                        u.email?.toLowerCase().includes(value) ||
+                        u.fullName?.toLowerCase().includes(value)
+                      );
+                      setFilteredUsers(filtered);
+                    }
+                  }}
+                />
+              </div>
+
               <div className="users-table-container">
                 <table className="users-table">
                   <thead>
@@ -459,7 +482,7 @@ const AdminDashboard = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {users.map((user) => (
+                    {filteredUsers.map((user) => (
                       <tr key={user.id}>
                         <td>
                           <div className="user-photo">
@@ -685,6 +708,7 @@ const AdminDashboard = () => {
                 </div>
 
                 <div className="user-detail-info">
+                  <h3>Informasi Akun</h3>
                   <div className="info-row">
                     <label>Nama:</label>
                     <span>{selectedUser.name || '-'}</span>
@@ -717,6 +741,126 @@ const AdminDashboard = () => {
                           year: 'numeric', month: 'long', day: 'numeric' 
                         }) : '-'}
                     </span>
+                  </div>
+                </div>
+
+                {/* Verification Data Section */}
+                <div className="verification-data-section">
+                  <h3>Data Verifikasi</h3>
+                  <div className="verification-status-card">
+                    <div className="info-row">
+                      <label>Status Verifikasi:</label>
+                      {selectedUser.verificationStatus === 'pending' ? (
+                        <span className="badge-pending">⏳ Pending</span>
+                      ) : selectedUser.verificationStatus === 'approved' ? (
+                        <span className="badge-active">✓ Disetujui</span>
+                      ) : selectedUser.verificationStatus === 'rejected' ? (
+                        <span className="badge-inactive">❌ Ditolak</span>
+                      ) : (
+                        <span className="badge-inactive">⚪ Belum Submit</span>
+                      )}
+                    </div>
+                    
+                    {selectedUser.fullName && (
+                      <>
+                        <div className="info-row">
+                          <label>Nama Lengkap:</label>
+                          <span>{selectedUser.fullName}</span>
+                        </div>
+                        <div className="info-row">
+                          <label>NIM:</label>
+                          <span>{selectedUser.nim || '-'}</span>
+                        </div>
+                        <div className="info-row">
+                          <label>Program Studi:</label>
+                          <span>{selectedUser.prodi || '-'}</span>
+                        </div>
+                        <div className="info-row">
+                          <label>Angkatan:</label>
+                          <span>{selectedUser.angkatan || '-'}</span>
+                        </div>
+                        <div className="info-row">
+                          <label>No. Telepon:</label>
+                          <span>{selectedUser.phoneNumber || '-'}</span>
+                        </div>
+                        <div className="info-row">
+                          <label>Jenis Kelamin:</label>
+                          <span>{selectedUser.jenisKelamin || '-'}</span>
+                        </div>
+                        <div className="info-row">
+                          <label>Anggota IBAF:</label>
+                          {selectedUser.isIbafMember ? (
+                            <span className="badge-active">✓ Ya</span>
+                          ) : (
+                            <span className="badge-inactive">✗ Tidak</span>
+                          )}
+                        </div>
+                        {selectedUser.isIbafMember && selectedUser.ibafMembershipNumber && (
+                          <div className="info-row">
+                            <label>No. Anggota IBAF:</label>
+                            <span>{selectedUser.ibafMembershipNumber}</span>
+                          </div>
+                        )}
+                      </>
+                    )}
+                    
+                    {selectedUser.verificationRequestedAt && (
+                      <div className="info-row">
+                        <label>Tanggal Pengajuan:</label>
+                        <span>
+                          {new Date(selectedUser.verificationRequestedAt).toLocaleString('id-ID', {
+                            year: 'numeric', month: 'long', day: 'numeric',
+                            hour: '2-digit', minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    )}
+                    
+                    {selectedUser.approvedAt && (
+                      <>
+                        <div className="info-row">
+                          <label>Disetujui Pada:</label>
+                          <span>
+                            {new Date(selectedUser.approvedAt).toLocaleString('id-ID', {
+                              year: 'numeric', month: 'long', day: 'numeric',
+                              hour: '2-digit', minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <div className="info-row">
+                          <label>Disetujui Oleh:</label>
+                          <span>{selectedUser.approvedBy || '-'}</span>
+                        </div>
+                      </>
+                    )}
+                    
+                    {selectedUser.rejectedAt && (
+                      <>
+                        <div className="info-row">
+                          <label>Ditolak Pada:</label>
+                          <span>
+                            {new Date(selectedUser.rejectedAt).toLocaleString('id-ID', {
+                              year: 'numeric', month: 'long', day: 'numeric',
+                              hour: '2-digit', minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <div className="info-row">
+                          <label>Ditolak Oleh:</label>
+                          <span>{selectedUser.rejectedBy || '-'}</span>
+                        </div>
+                        <div className="info-row rejection-reason-row">
+                          <label>Alasan Penolakan:</label>
+                          <span className="rejection-text">{selectedUser.rejectionReason || '-'}</span>
+                        </div>
+                      </>
+                    )}
+                    
+                    {!selectedUser.fullName && selectedUser.verificationStatus !== 'approved' && (
+                      <div className="no-verification-data">
+                        <p>⚠️ User belum mengisi data verifikasi</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

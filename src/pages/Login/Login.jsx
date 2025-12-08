@@ -89,7 +89,10 @@ const Login = () => {
     try {
       setError('');
       setLoading(true);
+      console.log('Starting Google login...');
+      
       const userCredential = await loginWithGoogle();
+      console.log('Google login successful:', userCredential.user.uid);
       
       // Get user role to redirect appropriately
       let userRole = 'user';
@@ -97,6 +100,7 @@ const Login = () => {
         const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
         if (userDoc.exists()) {
           userRole = userDoc.data().role || 'user';
+          console.log('User role:', userRole);
         }
       } catch (firestoreError) {
         console.warn('Could not fetch user role, using default:', firestoreError);
@@ -110,13 +114,23 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Google login error:', error);
+      console.error('Error code:', error.code);
+      console.error('Error message:', error.message);
       
       if (error.code === 'auth/popup-closed-by-user') {
-        setError('Login dibatalkan');
+        setError('Login dibatalkan oleh user');
+      } else if (error.code === 'auth/popup-blocked') {
+        setError('Popup diblokir oleh browser. Izinkan popup untuk login dengan Google');
       } else if (error.code === 'auth/network-request-failed') {
-        setError('Koneksi internet bermasalah');
+        setError('Koneksi internet bermasalah. Cek koneksi Anda');
+      } else if (error.code === 'auth/unauthorized-domain') {
+        setError('Domain tidak terotorisasi. Hubungi administrator');
+      } else if (error.code === 'auth/cancelled-popup-request') {
+        setError('Request popup dibatalkan');
+      } else if (error.code === 'auth/internal-error') {
+        setError('Terjadi kesalahan internal. Coba lagi');
       } else {
-        setError('Gagal login dengan Google');
+        setError(`Gagal login dengan Google: ${error.message || 'Unknown error'}`);
       }
     } finally {
       setLoading(false);
