@@ -28,8 +28,8 @@ service cloud.firestore {
       allow update, delete: if request.auth != null && 
         resource.data.userId == request.auth.uid;
       
-      // Admin can read all workout logs
-      allow read: if request.auth != null && 
+      // Admin can read and delete all workout logs
+      allow read, delete: if request.auth != null && 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
@@ -43,8 +43,8 @@ service cloud.firestore {
       allow create: if request.auth != null && 
         request.resource.data.userId == request.auth.uid;
       
-      // Admin can read and update all messages
-      allow read, update: if request.auth != null && 
+      // Admin can read, update, and delete all messages
+      allow read, update, delete: if request.auth != null && 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
