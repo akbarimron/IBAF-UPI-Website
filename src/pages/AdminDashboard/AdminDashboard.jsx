@@ -46,7 +46,7 @@ const AdminDashboard = () => {
     fetchData();
     
     // Set up real-time listeners for both user messages and admin messages
-    const userMessagesQuery = collection(db, 'userMessages');
+    const userMessagesQuery = collection(db, 'userMessages');   
     const adminMessagesQuery = collection(db, 'adminMessages');
     
     const unsubscribeUserMessages = onSnapshot(userMessagesQuery, () => {
