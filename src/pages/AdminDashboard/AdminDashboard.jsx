@@ -28,6 +28,9 @@ const AdminDashboard = () => {
   const [workoutLogs, setWorkoutLogs] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [selectedUserLogs, setSelectedUserLogs] = useState([]);
+  const [filteredWorkoutLogs, setFilteredWorkoutLogs] = useState([]);
+  const [selectedWeekFilter, setSelectedWeekFilter] = useState('all');
+  const [selectedDayFilter, setSelectedDayFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [replyText, setReplyText] = useState('');
   const [stats, setStats] = useState({
@@ -158,9 +161,36 @@ const AdminDashboard = () => {
         return a.day - b.day;
       });
       setSelectedUserLogs(logs);
+      setFilteredWorkoutLogs(logs);
+      setSelectedWeekFilter('all');
+      setSelectedDayFilter('all');
     } catch (error) {
       console.error('Error fetching workout logs:', error);
     }
+  };
+
+  const filterWorkoutLogs = (weekFilter, dayFilter) => {
+    let filtered = [...selectedUserLogs];
+    
+    if (weekFilter !== 'all') {
+      filtered = filtered.filter(log => log.week === parseInt(weekFilter));
+    }
+    
+    if (dayFilter !== 'all') {
+      filtered = filtered.filter(log => log.day === parseInt(dayFilter));
+    }
+    
+    setFilteredWorkoutLogs(filtered);
+  };
+
+  const handleWeekFilterChange = (week) => {
+    setSelectedWeekFilter(week);
+    filterWorkoutLogs(week, selectedDayFilter);
+  };
+
+  const handleDayFilterChange = (day) => {
+    setSelectedDayFilter(day);
+    filterWorkoutLogs(selectedWeekFilter, day);
   };
 
   const handleToggleUserStatus = async (userId, currentStatus) => {
@@ -1120,7 +1150,58 @@ const AdminDashboard = () => {
               </div>
 
               <div className="workout-logs-section">
-                <h3>Workout Logs</h3>
+                <div className="workout-logs-header">
+                  <h3>Workout Logs</h3>
+                  
+                  {selectedUserLogs.length > 0 && (
+                    <div className="workout-filters">
+                      <div className="filter-group">
+                        <label>Minggu:</label>
+                        <select 
+                          value={selectedWeekFilter} 
+                          onChange={(e) => handleWeekFilterChange(e.target.value)}
+                          className="filter-select"
+                        >
+                          <option value="all">Semua Minggu</option>
+                          {[...new Set(selectedUserLogs.map(log => log.week))].sort((a, b) => a - b).map(week => (
+                            <option key={week} value={week}>Minggu {week}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      <div className="filter-group">
+                        <label>Hari:</label>
+                        <select 
+                          value={selectedDayFilter} 
+                          onChange={(e) => handleDayFilterChange(e.target.value)}
+                          className="filter-select"
+                        >
+                          <option value="all">Semua Hari</option>
+                          {[...new Set(selectedUserLogs.map(log => log.day))].sort((a, b) => a - b).map(day => {
+                            const dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+                            return (
+                              <option key={day} value={day}>{dayNames[day - 1] || `Hari ${day}`}</option>
+                            );
+                          })}
+                        </select>
+                      </div>
+                      
+                      {(selectedWeekFilter !== 'all' || selectedDayFilter !== 'all') && (
+                        <button 
+                          className="reset-filter-btn"
+                          onClick={() => {
+                            setSelectedWeekFilter('all');
+                            setSelectedDayFilter('all');
+                            setFilteredWorkoutLogs(selectedUserLogs);
+                          }}
+                        >
+                          Reset Filter
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 {selectedUserLogs.length === 0 ? (
                   <p className="no-data">User belum memiliki workout log</p>
                 ) : (
@@ -1128,76 +1209,80 @@ const AdminDashboard = () => {
                     <div className="workout-summary">
                       <div className="summary-card">
                         <h4>Total Workouts</h4>
-                        <p>{selectedUserLogs.length}</p>
+                        <p>{filteredWorkoutLogs.length}</p>
                       </div>
                       <div className="summary-card">
                         <h4>Total Volume</h4>
-                        <p>{calculateTotalVolume(selectedUserLogs).toFixed(1)} kg</p>
+                        <p>{calculateTotalVolume(filteredWorkoutLogs).toFixed(1)} kg</p>
                       </div>
                       <div className="summary-card">
                         <h4>Weeks Logged</h4>
-                        <p>{[...new Set(selectedUserLogs.map(log => log.week))].length} / 8</p>
+                        <p>{[...new Set(filteredWorkoutLogs.map(log => log.week))].length} / 8</p>
                       </div>
                     </div>
 
-                    <div className="workout-logs-list">
-                      {Object.entries(groupLogsByWeek(selectedUserLogs))
-                        .sort(([weekA], [weekB]) => parseInt(weekA) - parseInt(weekB))
-                        .map(([week, weekLogs]) => (
-                        <div key={week} className="week-group">
-                          <div className="week-header">
-                            <h3>Minggu {week}</h3>
-                            <span className="week-stats">
-                              {weekLogs.length} workout{weekLogs.length > 1 ? 's' : ''} • 
-                              Total: {calculateTotalVolume(weekLogs).toFixed(1)} kg
-                            </span>
-                          </div>
-                          
-                          <div className="week-logs">
-                            {weekLogs.map((log) => (
-                              <div key={log.id} className="workout-log-card">
-                                <div className="log-header">
-                                  <h4>{log.dayName || `Hari ${log.day}`}</h4>
-                                  <span className="log-date">
-                                    {new Date(log.createdAt).toLocaleDateString('id-ID')}
-                                  </span>
-                                </div>
-                                <div className="log-exercises">
-                                  {log.exercises.map((exercise, idx) => (
-                                    <div key={idx} className="exercise-item">
-                                      <h5>{exercise.name}</h5>
-                                      <table className="sets-table-small">
-                                        <thead>
-                                          <tr>
-                                            <th>Set</th>
-                                            <th>Weight</th>
-                                            <th>Reps</th>
-                                            <th>Volume</th>
-                                          </tr>
-                                        </thead>
-                                        <tbody>
-                                          {exercise.sets.map((set, setIdx) => (
-                                            <tr key={setIdx}>
-                                              <td>{setIdx + 1}</td>
-                                              <td>{set.weight} kg</td>
-                                              <td>{set.reps}</td>
-                                              <td>{(parseFloat(set.weight) * parseInt(set.reps)).toFixed(1)} kg</td>
+                    {filteredWorkoutLogs.length === 0 ? (
+                      <p className="no-data">Tidak ada data untuk filter yang dipilih</p>
+                    ) : (
+                      <div className="workout-logs-list">
+                        {Object.entries(groupLogsByWeek(filteredWorkoutLogs))
+                          .sort(([weekA], [weekB]) => parseInt(weekA) - parseInt(weekB))
+                          .map(([week, weekLogs]) => (
+                          <div key={week} className="week-group">
+                            <div className="week-header">
+                              <h3>Minggu {week}</h3>
+                              <span className="week-stats">
+                                {weekLogs.length} workout{weekLogs.length > 1 ? 's' : ''} • 
+                                Total: {calculateTotalVolume(weekLogs).toFixed(1)} kg
+                              </span>
+                            </div>
+                            
+                            <div className="week-logs">
+                              {weekLogs.map((log) => (
+                                <div key={log.id} className="workout-log-card">
+                                  <div className="log-header">
+                                    <h4>{log.dayName || `Hari ${log.day}`}</h4>
+                                    <span className="log-date">
+                                      {new Date(log.createdAt).toLocaleDateString('id-ID')}
+                                    </span>
+                                  </div>
+                                  <div className="log-exercises">
+                                    {log.exercises.map((exercise, idx) => (
+                                      <div key={idx} className="exercise-item">
+                                        <h5>{exercise.name}</h5>
+                                        <table className="sets-table-small">
+                                          <thead>
+                                            <tr>
+                                              <th>Set</th>
+                                              <th>Weight</th>
+                                              <th>Reps</th>
+                                              <th>Volume</th>
                                             </tr>
-                                          ))}
-                                        </tbody>
-                                      </table>
-                                    </div>
-                                  ))}
+                                          </thead>
+                                          <tbody>
+                                            {exercise.sets.map((set, setIdx) => (
+                                              <tr key={setIdx}>
+                                                <td>{setIdx + 1}</td>
+                                                <td>{set.weight} kg</td>
+                                                <td>{set.reps}</td>
+                                                <td>{(parseFloat(set.weight) * parseInt(set.reps)).toFixed(1)} kg</td>
+                                              </tr>
+                                            ))}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    ))}
+                                  </div>
+                                  <div className="log-total">
+                                    <strong>Total Volume: {(log.totalVolume || 0).toFixed(1)} kg</strong>
+                                  </div>
                                 </div>
-                                <div className="log-total">
-                                  <strong>Total Volume: {(log.totalVolume || 0).toFixed(1)} kg</strong>
-                                </div>
-                              </div>
-                            ))}
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
+                        ))}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
