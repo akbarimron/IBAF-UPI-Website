@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { FcGoogle } from 'react-icons/fc';
 import './Login.css';
 
 const Login = () => {
@@ -11,7 +12,7 @@ const Login = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
-  const { login } = useAuth();
+  const { login, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -78,6 +79,44 @@ const Login = () => {
           break;
         default:
           setError(`Terjadi kesalahan: ${error.message}`);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    try {
+      setError('');
+      setLoading(true);
+      const userCredential = await loginWithGoogle();
+      
+      // Get user role to redirect appropriately
+      let userRole = 'user';
+      try {
+        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+        if (userDoc.exists()) {
+          userRole = userDoc.data().role || 'user';
+        }
+      } catch (firestoreError) {
+        console.warn('Could not fetch user role, using default:', firestoreError);
+      }
+      
+      // Redirect based on role
+      if (userRole === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Google login error:', error);
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        setError('Login dibatalkan');
+      } else if (error.code === 'auth/network-request-failed') {
+        setError('Koneksi internet bermasalah');
+      } else {
+        setError('Gagal login dengan Google');
       }
     } finally {
       setLoading(false);
@@ -165,6 +204,15 @@ const Login = () => {
             <div className="divider">
               <span>atau</span>
             </div>
+
+            <button 
+              onClick={handleGoogleLogin} 
+              className="google-button"
+              disabled={loading}
+            >
+              <FcGoogle className="google-icon" />
+              Masuk dengan Google
+            </button>
 
             <div className="register-link">
               Belum punya akun? <Link to="/register">Daftar sekarang</Link>

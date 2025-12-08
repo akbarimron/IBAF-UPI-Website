@@ -1,8 +1,10 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { createUserWithEmailAndPassword } from 'firebase/auth';
-import { doc, setDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../config/firebase';
+import { useAuth } from '../../contexts/AuthContext';
+import { FcGoogle } from 'react-icons/fc';
 import './Register.css';
 
 const Register = () => {
@@ -15,6 +17,7 @@ const Register = () => {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   
+  const { loginWithGoogle } = useAuth();
   const navigate = useNavigate();
 
   const handleChange = (e) => {
@@ -79,6 +82,44 @@ const Register = () => {
           break;
         default:
           setError('Terjadi kesalahan saat mendaftar');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleRegister = async () => {
+    try {
+      setError('');
+      setLoading(true);
+      const userCredential = await loginWithGoogle();
+      
+      // Check role and redirect
+      let userRole = 'user';
+      try {
+        const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+        if (userDoc.exists()) {
+          userRole = userDoc.data().role || 'user';
+        }
+      } catch (firestoreError) {
+        console.warn('Could not fetch user role:', firestoreError);
+      }
+      
+      // Redirect based on role
+      if (userRole === 'admin') {
+        navigate('/admin');
+      } else {
+        navigate('/dashboard');
+      }
+    } catch (error) {
+      console.error('Google register error:', error);
+      
+      if (error.code === 'auth/popup-closed-by-user') {
+        setError('Pendaftaran dibatalkan');
+      } else if (error.code === 'auth/network-request-failed') {
+        setError('Koneksi internet bermasalah');
+      } else {
+        setError('Gagal mendaftar dengan Google');
       }
     } finally {
       setLoading(false);
@@ -211,6 +252,15 @@ const Register = () => {
             <div className="divider">
               <span>atau</span>
             </div>
+
+            <button 
+              onClick={handleGoogleRegister} 
+              className="google-button"
+              disabled={loading}
+            >
+              <FcGoogle className="google-icon" />
+              Daftar dengan Google
+            </button>
 
             <div className="login-link">
               Sudah punya akun? <Link to="/login">Masuk di sini</Link>

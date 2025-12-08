@@ -4,9 +4,11 @@ import {
   signOut, 
   onAuthStateChanged,
   setPersistence,
-  browserLocalPersistence
+  browserLocalPersistence,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 
 const AuthContext = createContext();
@@ -24,7 +26,7 @@ export const AuthProvider = ({ children }) => {
   const [userRole, setUserRole] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Login function
+  // Email/Password Login
   const login = async (email, password) => {
     try {
       await setPersistence(auth, browserLocalPersistence);
@@ -32,7 +34,7 @@ export const AuthProvider = ({ children }) => {
       
       console.log('AuthContext - Login successful, UID:', userCredential.user.uid);
       
-      // Get user role from Firestore with error handling
+      // Get user role from Firestore
       try {
         const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
         console.log('AuthContext - Firestore doc exists:', userDoc.exists());
@@ -44,28 +46,66 @@ export const AuthProvider = ({ children }) => {
           console.log('AuthContext - Setting role to:', role);
           setUserRole(role);
         } else {
-          // Default role if no document exists
           console.log('AuthContext - No Firestore doc, using default role: user');
           setUserRole('user');
         }
       } catch (firestoreError) {
-        console.warn('Firestore access error, using default role:', firestoreError);
-        // Use default role if Firestore fails (permissions issue)
+        console.error('AuthContext - Error fetching role:', firestoreError);
         setUserRole('user');
       }
       
       return userCredential;
     } catch (error) {
+      console.error('AuthContext - Login error:', error);
       throw error;
     }
   };
 
-  // Logout function
+  // Google Sign-In
+  const loginWithGoogle = async () => {
+    try {
+      await setPersistence(auth, browserLocalPersistence);
+      const provider = new GoogleAuthProvider();
+      const userCredential = await signInWithPopup(auth, provider);
+      
+      console.log('AuthContext - Google login successful, UID:', userCredential.user.uid);
+      
+      // Check if user document exists, create if not
+      const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
+      
+      if (!userDoc.exists()) {
+        // Create new user document for Google sign-in
+        await setDoc(doc(db, 'users', userCredential.user.uid), {
+          name: userCredential.user.displayName || 'User',
+          email: userCredential.user.email,
+          role: 'user',
+          createdAt: new Date().toISOString(),
+          photoURL: userCredential.user.photoURL || ''
+        });
+        console.log('AuthContext - Created new user document for Google user');
+        setUserRole('user');
+      } else {
+        const userData = userDoc.data();
+        const role = userData.role || 'user';
+        console.log('AuthContext - Existing Google user, role:', role);
+        setUserRole(role);
+      }
+      
+      return userCredential;
+    } catch (error) {
+      console.error('AuthContext - Google login error:', error);
+      throw error;
+    }
+  };
+
+  // Logout
   const logout = async () => {
     try {
       await signOut(auth);
       setUserRole(null);
+      return true;
     } catch (error) {
+      console.error('Logout error:', error);
       throw error;
     }
   };
@@ -80,6 +120,7 @@ export const AuthProvider = ({ children }) => {
     return userRole === 'user';
   };
 
+  // Monitor auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setCurrentUser(user);
@@ -89,13 +130,14 @@ export const AuthProvider = ({ children }) => {
         try {
           const userDoc = await getDoc(doc(db, 'users', user.uid));
           if (userDoc.exists()) {
-            setUserRole(userDoc.data().role);
+            const role = userDoc.data().role || 'user';
+            setUserRole(role);
           } else {
-            setUserRole(null);
+            setUserRole('user');
           }
         } catch (error) {
           console.error('Error fetching user role:', error);
-          setUserRole(null);
+          setUserRole('user');
         }
       } else {
         setUserRole(null);
@@ -111,6 +153,7 @@ export const AuthProvider = ({ children }) => {
     currentUser,
     userRole,
     login,
+    loginWithGoogle,
     logout,
     isAdmin,
     isUser,
