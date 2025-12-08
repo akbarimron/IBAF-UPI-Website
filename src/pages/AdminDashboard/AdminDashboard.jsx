@@ -19,6 +19,7 @@ const AdminDashboard = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
+  const [userFilterTab, setUserFilterTab] = useState('all'); // all, approved, pending, rejected
   const [messages, setMessages] = useState([]);
   const [workoutLogs, setWorkoutLogs] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
@@ -290,6 +291,74 @@ const AdminDashboard = () => {
     }
   };
 
+  const handleDeleteUser = async (userId, userName) => {
+    if (!window.confirm(`⚠️ PERHATIAN!\n\nAnda akan menghapus akun:\n${userName}\n\nSemua data user ini akan dihapus permanen:\n- Data profil\n- Workout logs\n- Riwayat pesan\n\nApakah Anda yakin?`)) return;
+
+    const confirmText = window.prompt('Ketik "HAPUS" untuk konfirmasi penghapusan akun:');
+    if (confirmText !== 'HAPUS') {
+      alert('Penghapusan dibatalkan');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      
+      // Delete user's workout logs
+      const logsQuery = query(collection(db, 'workoutLogs'), where('userId', '==', userId));
+      const logsSnapshot = await getDocs(logsQuery);
+      const deleteLogsPromises = logsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deleteLogsPromises);
+      
+      // Delete user's messages
+      const messagesQuery = query(collection(db, 'userMessages'), where('userId', '==', userId));
+      const messagesSnapshot = await getDocs(messagesQuery);
+      const deleteMessagesPromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deleteMessagesPromises);
+      
+      // Delete admin messages
+      const adminMessagesQuery = query(collection(db, 'adminMessages'), where('userId', '==', userId));
+      const adminMessagesSnapshot = await getDocs(adminMessagesQuery);
+      const deleteAdminMessagesPromises = adminMessagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+      await Promise.all(deleteAdminMessagesPromises);
+      
+      // Finally delete user document
+      await deleteDoc(doc(db, 'users', userId));
+      
+      fetchUsers();
+      alert('✅ Akun berhasil dihapus beserta semua datanya');
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      alert('❌ Gagal menghapus akun: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filterUsersByTab = (tabName) => {
+    setUserFilterTab(tabName);
+    let filtered = [...users];
+    
+    switch(tabName) {
+      case 'approved':
+        filtered = users.filter(u => u.verificationStatus === 'approved');
+        break;
+      case 'pending':
+        filtered = users.filter(u => u.verificationStatus === 'pending');
+        break;
+      case 'rejected':
+        filtered = users.filter(u => u.verificationStatus === 'rejected');
+        break;
+      case 'not_submitted':
+        filtered = users.filter(u => !u.verificationStatus || u.verificationStatus === 'not_submitted');
+        break;
+      case 'all':
+      default:
+        filtered = users;
+    }
+    
+    setFilteredUsers(filtered);
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -446,6 +515,50 @@ const AdminDashboard = () => {
             <div className="users-tab">
               <h2>Kelola Users</h2>
               
+              {/* Filter Tabs */}
+              <div className="user-filter-tabs">
+                <button 
+                  className={`filter-tab ${userFilterTab === 'all' ? 'active' : ''}`}
+                  onClick={() => filterUsersByTab('all')}
+                >
+                  <span className="tab-icon">👥</span>
+                  <span className="tab-label">Semua Users</span>
+                  <span className="tab-count">{users.length}</span>
+                </button>
+                <button 
+                  className={`filter-tab ${userFilterTab === 'approved' ? 'active' : ''}`}
+                  onClick={() => filterUsersByTab('approved')}
+                >
+                  <span className="tab-icon">✅</span>
+                  <span className="tab-label">Terverifikasi</span>
+                  <span className="tab-count">{users.filter(u => u.verificationStatus === 'approved').length}</span>
+                </button>
+                <button 
+                  className={`filter-tab ${userFilterTab === 'pending' ? 'active' : ''}`}
+                  onClick={() => filterUsersByTab('pending')}
+                >
+                  <span className="tab-icon">⏳</span>
+                  <span className="tab-label">Pending</span>
+                  <span className="tab-count">{users.filter(u => u.verificationStatus === 'pending').length}</span>
+                </button>
+                <button 
+                  className={`filter-tab ${userFilterTab === 'rejected' ? 'active' : ''}`}
+                  onClick={() => filterUsersByTab('rejected')}
+                >
+                  <span className="tab-icon">❌</span>
+                  <span className="tab-label">Ditolak</span>
+                  <span className="tab-count">{users.filter(u => u.verificationStatus === 'rejected').length}</span>
+                </button>
+                <button 
+                  className={`filter-tab ${userFilterTab === 'not_submitted' ? 'active' : ''}`}
+                  onClick={() => filterUsersByTab('not_submitted')}
+                >
+                  <span className="tab-icon">⚪</span>
+                  <span className="tab-label">Belum Submit</span>
+                  <span className="tab-count">{users.filter(u => !u.verificationStatus || u.verificationStatus === 'not_submitted').length}</span>
+                </button>
+              </div>
+              
               <div className="table-controls">
                 <input 
                   type="text" 
@@ -454,9 +567,23 @@ const AdminDashboard = () => {
                   onChange={(e) => {
                     const value = e.target.value.toLowerCase();
                     if (!value.trim()) {
-                      setFilteredUsers(users);
+                      filterUsersByTab(userFilterTab);
                     } else {
-                      const filtered = users.filter(u => 
+                      let baseUsers = [...users];
+                      
+                      // Apply tab filter first
+                      if (userFilterTab === 'approved') {
+                        baseUsers = users.filter(u => u.verificationStatus === 'approved');
+                      } else if (userFilterTab === 'pending') {
+                        baseUsers = users.filter(u => u.verificationStatus === 'pending');
+                      } else if (userFilterTab === 'rejected') {
+                        baseUsers = users.filter(u => u.verificationStatus === 'rejected');
+                      } else if (userFilterTab === 'not_submitted') {
+                        baseUsers = users.filter(u => !u.verificationStatus || u.verificationStatus === 'not_submitted');
+                      }
+                      
+                      // Then apply search
+                      const filtered = baseUsers.filter(u => 
                         u.name?.toLowerCase().includes(value) || 
                         u.email?.toLowerCase().includes(value) ||
                         u.fullName?.toLowerCase().includes(value)
@@ -536,7 +663,7 @@ const AdminDashboard = () => {
                             <button
                               onClick={() => handleViewUserDetails(user)}
                               className="btn-view"
-                              title="Lihat Detail"
+                              title="👁️ Lihat detail lengkap user termasuk data verifikasi dan workout logs"
                             >
                               👁️
                             </button>
@@ -546,14 +673,14 @@ const AdminDashboard = () => {
                                 <button
                                   onClick={() => handleApproveUser(user.id, user.isIbafMember)}
                                   className="btn-approve"
-                                  title="Setujui Verifikasi"
+                                  title="✓ Setujui verifikasi user - User dapat akses dashboard penuh"
                                 >
                                   ✓
                                 </button>
                                 <button
                                   onClick={() => handleRejectUser(user.id)}
                                   className="btn-reject"
-                                  title="Tolak Verifikasi"
+                                  title="❌ Tolak verifikasi user - Akan diminta alasan penolakan"
                                 >
                                   ❌
                                 </button>
@@ -563,7 +690,7 @@ const AdminDashboard = () => {
                             <button
                               onClick={() => handleSendMessageToUser(user)}
                               className="btn-message"
-                              title="Kirim Pesan"
+                              title="💬 Kirim pesan pribadi ke user - Pesan akan muncul di dashboard user"
                             >
                               💬
                             </button>
@@ -573,7 +700,7 @@ const AdminDashboard = () => {
                                 <button
                                   onClick={() => handleToggleUserStatus(user.id, user.isActive !== false)}
                                   className={user.isActive !== false ? 'btn-deactivate' : 'btn-activate'}
-                                  title={user.isActive !== false ? 'Nonaktifkan' : 'Aktifkan'}
+                                  title={user.isActive !== false ? '⏸️ Nonaktifkan user - User tidak dapat login' : '▶️ Aktifkan user - User dapat login kembali'}
                                 >
                                   {user.isActive !== false ? '⏸️' : '▶️'}
                                 </button>
@@ -581,7 +708,7 @@ const AdminDashboard = () => {
                                   <button
                                     onClick={() => handleUnbanUser(user.id)}
                                     className="btn-unban"
-                                    title="Unban User"
+                                    title="✓ Unban user - Cabut status banned"
                                   >
                                     ✓
                                   </button>
@@ -589,11 +716,18 @@ const AdminDashboard = () => {
                                   <button
                                     onClick={() => handleBanUser(user.id)}
                                     className="btn-ban"
-                                    title="Ban User"
+                                    title="🚫 Ban user - User akan di-banned permanen"
                                   >
                                     🚫
                                   </button>
                                 )}
+                                <button
+                                  onClick={() => handleDeleteUser(user.id, user.name || user.email)}
+                                  className="btn-delete-user"
+                                  title="🗑️ HAPUS AKUN - Menghapus user dan semua datanya secara permanen (TIDAK DAPAT DIBATALKAN!)"
+                                >
+                                  🗑️
+                                </button>
                               </>
                             )}
                           </div>

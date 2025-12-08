@@ -347,6 +347,65 @@
   color: #2c3e50;
 }
 
+/* User Filter Tabs */
+.user-filter-tabs {
+  display: flex;
+  gap: 0.8rem;
+  margin-bottom: 1.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.5rem;
+}
+
+.filter-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.8rem 1.2rem;
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 0.9rem;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  color: #495057;
+}
+
+.filter-tab:hover {
+  background: #f8f9fa;
+  border-color: #B63333;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(182, 51, 51, 0.2);
+}
+
+.filter-tab.active {
+  background: linear-gradient(135deg, #B63333 0%, #8a2525 100%);
+  color: white;
+  border-color: #B63333;
+  box-shadow: 0 4px 12px rgba(182, 51, 51, 0.3);
+}
+
+.tab-icon {
+  font-size: 1.2rem;
+}
+
+.tab-label {
+  font-weight: 600;
+}
+
+.tab-count {
+  background: rgba(255, 255, 255, 0.3);
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  font-weight: bold;
+}
+
+.filter-tab.active .tab-count {
+  background: rgba(255, 255, 255, 0.25);
+}
+
 .table-controls {
   margin-bottom: 1.5rem;
 }
@@ -602,6 +661,23 @@
 .btn-message:hover {
   background: #0056b3;
   transform: scale(1.1);
+}
+
+.btn-delete-user {
+  background: #6c1818;
+  color: white;
+  font-weight: bold;
+  border: 2px solid #8b0000;
+}
+
+.btn-delete-user:hover {
+  background: #8b0000;
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(139, 0, 0, 0.4);
+}
+
+.btn-delete-user:active {
+  transform: scale(0.95);
 }
 
 
@@ -1234,6 +1310,31 @@
 
   .search-input {
     max-width: 100%;
+  }
+
+  .user-filter-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .filter-tab {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.85rem;
+    flex-shrink: 0;
+  }
+
+  .tab-icon {
+    font-size: 1rem;
+  }
+
+  .tab-label {
+    display: none;
+  }
+
+  .tab-count {
+    font-size: 0.8rem;
   }
 }
 
