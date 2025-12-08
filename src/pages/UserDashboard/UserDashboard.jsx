@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs, orderBy } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs } from 'firebase/firestore';
 import { db, storage } from '../../config/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import WorkoutLog from '../../components/sections/WorkoutLog/WorkoutLog';
@@ -48,13 +48,18 @@ const UserDashboard = () => {
     try {
       const q = query(
         collection(db, 'userMessages'),
-        where('userId', '==', currentUser.uid),
-        orderBy('createdAt', 'desc')
+        where('userId', '==', currentUser.uid)
       );
       const querySnapshot = await getDocs(q);
       const msgs = [];
       querySnapshot.forEach((doc) => {
         msgs.push({ id: doc.id, ...doc.data() });
+      });
+      // Sort by createdAt descending client-side
+      msgs.sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        return dateB - dateA;
       });
       setMessages(msgs);
     } catch (error) {

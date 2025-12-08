@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { collection, addDoc, query, where, getDocs, deleteDoc, doc, updateDoc, orderBy } from 'firebase/firestore';
+import { collection, addDoc, query, where, getDocs, deleteDoc, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../../config/firebase';
 import { useAuth } from '../../../contexts/AuthContext';
 import './WorkoutLog.css';
@@ -29,8 +29,7 @@ const WorkoutLog = () => {
       const logsQuery = query(
         collection(db, 'workoutLogs'),
         where('userId', '==', currentUser.uid),
-        where('week', '==', currentWeek),
-        orderBy('day', 'asc')
+        where('week', '==', currentWeek)
       );
       
       const querySnapshot = await getDocs(logsQuery);
@@ -38,6 +37,8 @@ const WorkoutLog = () => {
       querySnapshot.forEach((doc) => {
         logs.push({ id: doc.id, ...doc.data() });
       });
+      // Sort by day client-side
+      logs.sort((a, b) => a.day - b.day);
       setWorkoutLogs(logs);
     } catch (error) {
       console.error('Error fetching workout logs:', error);
