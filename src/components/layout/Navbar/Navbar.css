@@ -73,3 +73,28 @@
 .navbar-custom .navbar-toggler:not(:disabled):not(.disabled) {
   color: #B63333 !important;
 }
+
+/* Auth Buttons */
+.auth-btn {
+  font-weight: 600 !important;
+  padding: 6px 16px !important;
+  border-radius: 6px !important;
+  transition: all 0.3s ease !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 6px !important;
+  font-size: 0.95rem !important;
+}
+
+.auth-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+
+@media (max-width: 991px) {
+  .auth-btn {
+    margin-top: 10px !important;
+    margin-left: 0 !important;
+    width: fit-content;
+  }
+}
