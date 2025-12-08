@@ -119,15 +119,16 @@
   width: 56px;
   height: 56px;
   border-radius: 12px;
-  background: linear-gradient(135deg, #B63333 0%, #8a2525 100%);
+  background: #2c3e50;
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 1.4rem;
-  font-weight: 700;
+  font-weight: 600;
   margin: 0 auto;
-  box-shadow: 0 4px 12px rgba(182, 51, 51, 0.4);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .admin-info-card h3 {
@@ -367,9 +368,6 @@
   border-color: #e9ecef;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
 }
-  background: #e9ecef;
-  transform: translateX(5px);
-}
 
 .activity-icon {
   font-size: 1.5rem;
@@ -453,11 +451,12 @@
 }
 
 .tab-count {
-  background: rgba(0, 0, 0, 0.1);
+  background: #e9ecef;
   padding: 0.2rem 0.6rem;
   border-radius: 10px;
   font-size: 0.75rem;
   font-weight: 600;
+  color: #495057;
 }
 
 .filter-tab.active .tab-count {
@@ -566,13 +565,6 @@
   font-weight: 600;
   white-space: nowrap;
   border: 1px solid #fecaca;
-}
-  background: #f8d7da;
-  color: #721c24;
-  border-radius: 20px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  white-space: nowrap;
 }
 
 .user-photo {

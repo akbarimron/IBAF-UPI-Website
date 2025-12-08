@@ -7,7 +7,7 @@ import './Navbar.css';
 
 export default function Navbar() {
   const navigate = useNavigate();
-  const { currentUser, userRole, logout } = useAuth();
+  const { currentUser, userRole, userName, logout } = useAuth();
   const [showDropdown, setShowDropdown] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -73,7 +73,7 @@ export default function Navbar() {
                 <div className="dropdown-menu-custom">
                   <div className="dropdown-header">
                     <div className="dropdown-user-info">
-                      <strong>{currentUser.email}</strong>
+                      <strong>{userName || currentUser.displayName || currentUser.email}</strong>
                       <span className="user-role-badge">{userRole}</span>
                     </div>
                   </div>
