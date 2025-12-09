@@ -264,8 +264,7 @@
   }
 
   .register-promo {
-    padding: 40px 30px;
-    min-height: 350px;
+    display: none; /* Hide image on mobile/tablet to prevent overlap */
   }
 
   .promo-logo h1 {
@@ -282,6 +281,7 @@
 
   .register-form-section {
     padding: 40px 30px;
+    flex: 1;
   }
 
   .form-row {
