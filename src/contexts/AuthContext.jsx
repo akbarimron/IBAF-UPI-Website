@@ -46,6 +46,16 @@ export const AuthProvider = ({ children }) => {
           const role = userData.role || 'user';
           const name = userData.name || userData.displayName || null;
           console.log('AuthContext - Setting role to:', role);
+          
+          // Auto-verify admin emails
+          if (role === 'admin' && !userData.emailVerified) {
+            await setDoc(doc(db, 'users', userCredential.user.uid), {
+              ...userData,
+              emailVerified: true
+            }, { merge: true });
+            console.log('AuthContext - Auto-verified admin email:', email);
+          }
+          
           setUserRole(role);
           setUserName(name);
         } else {
@@ -97,6 +107,16 @@ export const AuthProvider = ({ children }) => {
         const role = userData.role || 'user';
         const name = userData.name || userCredential.user.displayName || null;
         console.log('AuthContext - Existing Google user, role:', role);
+        
+        // Auto-verify admin emails
+        if (role === 'admin' && !userData.emailVerified) {
+          await setDoc(doc(db, 'users', userCredential.user.uid), {
+            ...userData,
+            emailVerified: true
+          }, { merge: true });
+          console.log('AuthContext - Auto-verified admin email:', userCredential.user.email);
+        }
+        
         setUserRole(role);
         setUserName(name);
       }
@@ -144,6 +164,16 @@ export const AuthProvider = ({ children }) => {
             const userData = userDoc.data();
             const role = userData.role || 'user';
             const name = userData.name || userData.displayName || user.displayName || null;
+            
+            // Auto-verify admin emails on auth state change
+            if (role === 'admin' && !userData.emailVerified) {
+              await setDoc(doc(db, 'users', user.uid), {
+                ...userData,
+                emailVerified: true
+              }, { merge: true });
+              console.log('AuthContext - Auto-verified admin email on state change:', user.email);
+            }
+            
             setUserRole(role);
             setUserName(name);
           } else {
