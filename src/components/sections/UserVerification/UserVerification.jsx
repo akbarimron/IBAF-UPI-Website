@@ -10,7 +10,6 @@ const UserVerification = ({ userData, onUpdate, showNotification }) => {
     fullName: userData?.fullName || '',
     nim: userData?.nim || '',
     prodi: userData?.prodi || '',
-    angkatan: userData?.angkatan || '',
     phoneNumber: userData?.phoneNumber || '',
     jenisKelamin: userData?.jenisKelamin || '',
     isIbafMember: userData?.isIbafMember || false,
@@ -30,7 +29,7 @@ const UserVerification = ({ userData, onUpdate, showNotification }) => {
     e.preventDefault();
     
     // Validation
-    if (!formData.fullName || !formData.nim || !formData.prodi || !formData.angkatan || !formData.phoneNumber || !formData.jenisKelamin) {
+    if (!formData.fullName || !formData.nim || !formData.prodi || !formData.phoneNumber || !formData.jenisKelamin) {
       if (showNotification) {
         showNotification('Harap isi semua data yang diperlukan', 'warning');
       } else {
@@ -106,18 +105,6 @@ const UserVerification = ({ userData, onUpdate, showNotification }) => {
                 value={formData.nim}
                 onChange={handleChange}
                 placeholder="Contoh: 2100123"
-                required
-              />
-            </div>
-
-            <div className="form-group">
-              <label>Angkatan <span className="required">*</span></label>
-              <input
-                type="text"
-                name="angkatan"
-                value={formData.angkatan}
-                onChange={handleChange}
-                placeholder="Contoh: 2021"
                 required
               />
             </div>

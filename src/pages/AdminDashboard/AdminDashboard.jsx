@@ -1490,10 +1490,6 @@ const AdminDashboard = () => {
                           <span>{selectedUser.prodi || '-'}</span>
                         </div>
                         <div className="info-row">
-                          <label>Angkatan:</label>
-                          <span>{selectedUser.angkatan || '-'}</span>
-                        </div>
-                        <div className="info-row">
                           <label>No. Telepon:</label>
                           <span>{selectedUser.phoneNumber || '-'}</span>
                         </div>

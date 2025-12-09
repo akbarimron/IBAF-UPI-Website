@@ -539,6 +539,44 @@
   color: white;
 }
 
+/* Responsive - Tablet and Medium Screens (750-1000px) */
+@media (max-width: 1000px) and (min-width: 750px) {
+  .admin-container {
+    padding: 20px;
+  }
+
+  .main-content {
+    padding: 24px;
+    min-width: 0;
+  }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+  }
+
+  .user-table-container {
+    overflow-x: auto;
+  }
+
+  .user-table {
+    min-width: 700px;
+  }
+
+  .users-grid,
+  .messages-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .chart-container {
+    min-height: 300px;
+  }
+
+  .modal-content {
+    padding: 20px;
+  }
+}
+
 @media (max-width: 768px) {
   .user-filter-tabs {
     flex-direction: column;
