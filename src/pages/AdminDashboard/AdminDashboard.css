@@ -2702,3 +2702,444 @@
     padding: 0.875rem;
   }
 }
+
+/* Beautiful Confirmation Modal */
+.confirm-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+.confirm-modal {
+  background: white;
+  border-radius: 16px;
+  padding: 2rem;
+  max-width: 480px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  animation: slideUp 0.3s ease-out;
+  text-align: center;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(30px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.confirm-modal-icon {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  font-size: 2.5rem;
+  transition: transform 0.3s ease;
+}
+
+.confirm-modal-icon:hover {
+  transform: scale(1.05);
+}
+
+.confirm-modal-icon.approve {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  color: white;
+  box-shadow: 0 8px 24px rgba(76, 175, 80, 0.3);
+}
+
+.confirm-modal-icon.reject {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  color: white;
+  box-shadow: 0 8px 24px rgba(244, 67, 54, 0.3);
+}
+
+.confirm-modal-icon.ban {
+  background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+  color: white;
+  box-shadow: 0 8px 24px rgba(156, 39, 176, 0.3);
+}
+
+.confirm-modal-icon.unban {
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  color: white;
+  box-shadow: 0 8px 24px rgba(33, 150, 243, 0.3);
+}
+
+.confirm-modal-icon.delete,
+.confirm-modal-icon.delete-user {
+  background: linear-gradient(135deg, #ff5252 0%, #ff1744 100%);
+  color: white;
+  box-shadow: 0 8px 24px rgba(255, 82, 82, 0.3);
+}
+
+.confirm-modal-icon.message {
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+  color: white;
+  box-shadow: 0 8px 24px rgba(255, 152, 0, 0.3);
+}
+
+.confirm-modal-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1a1d29;
+  margin-bottom: 1rem;
+}
+
+.confirm-modal-message {
+  font-size: 0.95rem;
+  color: #666;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+  white-space: pre-line;
+}
+
+.confirm-modal-input {
+  width: 100%;
+  padding: 0.875rem;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  margin-bottom: 1.5rem;
+  transition: border-color 0.3s ease, box-shadow 0.3s ease;
+  resize: vertical;
+  min-height: 44px;
+}
+
+.confirm-modal-input:focus {
+  outline: none;
+  border-color: #2196F3;
+  box-shadow: 0 0 0 3px rgba(33, 150, 243, 0.1);
+}
+
+.confirm-modal-input::placeholder {
+  color: #aaa;
+}
+
+.confirm-modal-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.confirm-btn-cancel,
+.confirm-btn-confirm {
+  flex: 1;
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.confirm-btn-cancel {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.confirm-btn-cancel:hover {
+  background: #e0e0e0;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.confirm-btn-confirm {
+  color: white;
+}
+
+.confirm-btn-confirm.approve {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.confirm-btn-confirm.approve:hover {
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+  transform: translateY(-2px);
+}
+
+.confirm-btn-confirm.reject {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+}
+
+.confirm-btn-confirm.reject:hover {
+  box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+  transform: translateY(-2px);
+}
+
+.confirm-btn-confirm.ban {
+  background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+  box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+}
+
+.confirm-btn-confirm.ban:hover {
+  box-shadow: 0 6px 20px rgba(156, 39, 176, 0.4);
+  transform: translateY(-2px);
+}
+
+.confirm-btn-confirm.unban {
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.confirm-btn-confirm.unban:hover {
+  box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+  transform: translateY(-2px);
+}
+
+.confirm-btn-confirm.delete,
+.confirm-btn-confirm.delete-user {
+  background: linear-gradient(135deg, #ff5252 0%, #ff1744 100%);
+  box-shadow: 0 4px 12px rgba(255, 82, 82, 0.3);
+}
+
+.confirm-btn-confirm.delete:hover,
+.confirm-btn-confirm.delete-user:hover {
+  box-shadow: 0 6px 20px rgba(255, 82, 82, 0.4);
+  transform: translateY(-2px);
+}
+
+.confirm-btn-confirm.message {
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+.confirm-btn-confirm.message:hover {
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Responsive Confirmation Modal */
+@media (max-width: 640px) {
+  .confirm-modal {
+    padding: 1.5rem;
+    max-width: 95%;
+  }
+
+  .confirm-modal-icon {
+    width: 70px;
+    height: 70px;
+    font-size: 2rem;
+  }
+
+  .confirm-modal-title {
+    font-size: 1.25rem;
+  }
+
+  .confirm-modal-message {
+    font-size: 0.9rem;
+  }
+
+  .confirm-modal-actions {
+    flex-direction: column;
+  }
+
+  .confirm-btn-cancel,
+  .confirm-btn-confirm {
+    width: 100%;
+  }
+}
+
+/* Admin Notification Toast */
+.admin-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 1rem 1.5rem;
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 300px;
+  max-width: 500px;
+  animation: slideInRight 0.3s ease-out;
+  font-weight: 500;
+  color: white;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.admin-notification.success {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  box-shadow: 0 8px 24px rgba(76, 175, 80, 0.4);
+}
+
+.admin-notification.error {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  box-shadow: 0 8px 24px rgba(244, 67, 54, 0.4);
+}
+
+.admin-notification.warning {
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+  box-shadow: 0 8px 24px rgba(255, 152, 0, 0.4);
+}
+
+.admin-notification.info {
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  box-shadow: 0 8px 24px rgba(33, 150, 243, 0.4);
+}
+
+.notification-content {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.notif-icon {
+  font-size: 1.5rem;
+}
+
+/* User Detail Actions Row */
+.user-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.btn-send-message,
+.btn-approve-detail,
+.btn-reject-detail,
+.btn-ban-detail,
+.btn-unban-detail,
+.btn-delete-detail {
+  padding: 0.75rem 1.25rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: white;
+}
+
+.btn-send-message {
+  background: linear-gradient(135deg, #FF9800 0%, #F57C00 100%);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.3);
+}
+
+.btn-send-message:hover {
+  box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-approve-detail {
+  background: linear-gradient(135deg, #4CAF50 0%, #45a049 100%);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
+.btn-approve-detail:hover {
+  box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-reject-detail {
+  background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+  box-shadow: 0 4px 12px rgba(244, 67, 54, 0.3);
+}
+
+.btn-reject-detail:hover {
+  box-shadow: 0 6px 20px rgba(244, 67, 54, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-ban-detail {
+  background: linear-gradient(135deg, #9C27B0 0%, #7B1FA2 100%);
+  box-shadow: 0 4px 12px rgba(156, 39, 176, 0.3);
+}
+
+.btn-ban-detail:hover {
+  box-shadow: 0 6px 20px rgba(156, 39, 176, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-unban-detail {
+  background: linear-gradient(135deg, #2196F3 0%, #1976D2 100%);
+  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.3);
+}
+
+.btn-unban-detail:hover {
+  box-shadow: 0 6px 20px rgba(33, 150, 243, 0.4);
+  transform: translateY(-2px);
+}
+
+.btn-delete-detail {
+  background: linear-gradient(135deg, #ff5252 0%, #ff1744 100%);
+  box-shadow: 0 4px 12px rgba(255, 82, 82, 0.3);
+}
+
+.btn-delete-detail:hover {
+  box-shadow: 0 6px 20px rgba(255, 82, 82, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Responsive for notifications and detail actions */
+@media (max-width: 768px) {
+  .admin-notification {
+    top: 10px;
+    right: 10px;
+    left: 10px;
+    min-width: auto;
+  }
+  
+  .user-actions-row {
+    flex-direction: column;
+  }
+  
+  .btn-send-message,
+  .btn-approve-detail,
+  .btn-reject-detail,
+  .btn-ban-detail,
+  .btn-unban-detail,
+  .btn-delete-detail {
+    width: 100%;
+    justify-content: center;
+  }
+}

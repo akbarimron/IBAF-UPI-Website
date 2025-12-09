@@ -14,7 +14,7 @@ import {
   getDoc
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { FaUser, FaUserNinja, FaUserAstronaut, FaUserTie, FaUserGraduate, FaRobot, FaDumbbell, FaCat, FaDog, FaDragon, FaFrog, FaHorse, FaOtter, FaKiwiBird, FaFish } from 'react-icons/fa';
+import { FaUser, FaUserNinja, FaUserAstronaut, FaUserTie, FaUserGraduate, FaRobot, FaDumbbell, FaCat, FaDog, FaDragon, FaFrog, FaHorse, FaOtter, FaKiwiBird, FaFish, FaTrashAlt, FaCheckCircle, FaTimesCircle, FaPaperPlane, FaBan, FaExclamationTriangle, FaUserCheck, FaUserTimes } from 'react-icons/fa';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -50,6 +50,26 @@ const AdminDashboard = () => {
   // Admin profile state
   const [adminData, setAdminData] = useState(null);
   const [selectedAvatar, setSelectedAvatar] = useState({ icon: 'FaUserShield', color: '#B63333' });
+  
+  // Notification state
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState('');
+  const [notificationType, setNotificationType] = useState('info'); // success, error, warning, info
+  
+  // Confirmation modal state
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [confirmModalData, setConfirmModalData] = useState({
+    type: '', // 'delete', 'approve', 'reject', 'ban', 'message'
+    title: '',
+    message: '',
+    icon: null,
+    confirmText: '',
+    cancelText: 'Batal',
+    onConfirm: null,
+    requireInput: false,
+    inputPlaceholder: '',
+    inputValue: ''
+  });
   
   // Avatar options (same as user)
   const avatarIcons = [
@@ -342,39 +362,53 @@ const AdminDashboard = () => {
   };
 
   const handleBanUser = async (userId) => {
-    if (!window.confirm('Ban user ini? User tidak akan bisa login.')) return;
-
-    try {
-      await updateDoc(doc(db, 'users', userId), {
-        isActive: false,
-        isBanned: true,
-        bannedAt: new Date().toISOString()
-      });
-      
-      fetchUsers();
-      alert('User berhasil di-ban');
-    } catch (error) {
-      console.error('Error banning user:', error);
-      alert('Gagal ban user');
-    }
+    showConfirmation({
+      type: 'ban',
+      title: 'Ban User',
+      message: 'Apakah Anda yakin ingin memblokir user ini? User tidak akan bisa login.',
+      icon: <FaBan />,
+      confirmText: 'Ban User',
+      onConfirm: async () => {
+        try {
+          await updateDoc(doc(db, 'users', userId), {
+            isActive: false,
+            isBanned: true,
+            bannedAt: new Date().toISOString()
+          });
+          
+          fetchUsers();
+          showNotif('✅ User berhasil di-ban', 'success');
+        } catch (error) {
+          console.error('Error banning user:', error);
+          showNotif('❌ Gagal ban user', 'error');
+        }
+      }
+    });
   };
 
   const handleUnbanUser = async (userId) => {
-    if (!window.confirm('Unban user ini?')) return;
-
-    try {
-      await updateDoc(doc(db, 'users', userId), {
-        isActive: true,
-        isBanned: false,
-        unbannedAt: new Date().toISOString()
-      });
-      
-      fetchUsers();
-      alert('User berhasil di-unban');
-    } catch (error) {
-      console.error('Error unbanning user:', error);
-      alert('Gagal unban user');
-    }
+    showConfirmation({
+      type: 'unban',
+      title: 'Unban User',
+      message: 'Apakah Anda yakin ingin membuka blokir user ini?',
+      icon: <FaCheckCircle />,
+      confirmText: 'Unban User',
+      onConfirm: async () => {
+        try {
+          await updateDoc(doc(db, 'users', userId), {
+            isActive: true,
+            isBanned: false,
+            unbannedAt: new Date().toISOString()
+          });
+          
+          fetchUsers();
+          showNotif('✅ User berhasil di-unban', 'success');
+        } catch (error) {
+          console.error('Error unbanning user:', error);
+          showNotif('❌ Gagal unban user', 'error');
+        }
+      }
+    });
   };
 
   const handleReplyMessage = async (messageId) => {
@@ -411,15 +445,22 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteMessage = async (messageId) => {
-    if (!window.confirm('Hapus pesan ini?')) return;
-
-    try {
-      await deleteDoc(doc(db, 'userMessages', messageId));
-      alert('Pesan berhasil dihapus');
-    } catch (error) {
-      console.error('Error deleting message:', error);
-      alert('Gagal menghapus pesan');
-    }
+    showConfirmation({
+      type: 'delete',
+      title: 'Hapus Pesan',
+      message: 'Apakah Anda yakin ingin menghapus pesan ini? Tindakan ini tidak dapat dibatalkan.',
+      icon: <FaTrashAlt />,
+      confirmText: 'Hapus',
+      onConfirm: async () => {
+        try {
+          await deleteDoc(doc(db, 'userMessages', messageId));
+          showNotif('✅ Pesan berhasil dihapus', 'success');
+        } catch (error) {
+          console.error('Error deleting message:', error);
+          showNotif('❌ Gagal menghapus pesan', 'error');
+        }
+      }
+    });
   };
 
   const handleViewUserMessages = (inbox) => {
@@ -433,6 +474,41 @@ const AdminDashboard = () => {
     setReplyText('');
   };
 
+  // Show notification
+  const showNotif = (message, type = 'info') => {
+    setNotificationMessage(message);
+    setNotificationType(type);
+    setShowNotification(true);
+    setTimeout(() => {
+      setShowNotification(false);
+    }, 3000);
+  };
+
+  // Show confirmation modal with custom config
+  const showConfirmation = (config) => {
+    setConfirmModalData({
+      type: config.type || '',
+      title: config.title || 'Konfirmasi',
+      message: config.message || 'Apakah Anda yakin?',
+      icon: config.icon || <FaExclamationTriangle />,
+      confirmText: config.confirmText || 'Konfirmasi',
+      cancelText: config.cancelText || 'Batal',
+      onConfirm: config.onConfirm || null,
+      requireInput: config.requireInput || false,
+      inputPlaceholder: config.inputPlaceholder || '',
+      inputValue: ''
+    });
+    setShowConfirmModal(true);
+  };
+
+  // Handle modal confirm action
+  const handleModalConfirm = async () => {
+    if (confirmModalData.onConfirm) {
+      await confirmModalData.onConfirm(confirmModalData.inputValue);
+    }
+    setShowConfirmModal(false);
+  };
+
   const handleViewUserDetails = async (user) => {
     setSelectedUser(user);
     await fetchUserWorkoutLogs(user.id);
@@ -440,60 +516,104 @@ const AdminDashboard = () => {
   };
 
   const handleApproveUser = async (userId, isIbafMember) => {
-    if (!window.confirm(`Setujui verifikasi user ini sebagai ${isIbafMember ? 'Anggota IBAF' : 'Non-Anggota IBAF'}?`)) return;
-
-    try {
-      // Get user data first to retrieve fullName
-      const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', userId)));
-      const userData = userDoc.docs[0]?.data();
-      
-      await updateDoc(doc(db, 'users', userId), {
-        verificationStatus: 'approved',
-        isIbafMember: isIbafMember,
-        isActive: true,
-        name: userData?.fullName || userData?.name, // Update name with fullName
-        approvedAt: new Date().toISOString(),
-        approvedBy: currentUser.email
-      });
-      
-      fetchUsers();
-      alert('User berhasil disetujui!');
-    } catch (error) {
-      console.error('Error approving user:', error);
-      alert('Gagal menyetujui user');
-    }
+    showConfirmation({
+      type: 'approve',
+      title: 'Setujui Verifikasi',
+      message: `Apakah Anda yakin ingin menyetujui verifikasi user ini sebagai ${isIbafMember ? 'Anggota IBAF' : 'Non-Anggota IBAF'}?`,
+      icon: <FaUserCheck />,
+      confirmText: 'Setujui',
+      onConfirm: async () => {
+        try {
+          const userDoc = await getDocs(query(collection(db, 'users'), where('__name__', '==', userId)));
+          const userData = userDoc.docs[0]?.data();
+          
+          await updateDoc(doc(db, 'users', userId), {
+            verificationStatus: 'approved',
+            isIbafMember: isIbafMember,
+            isActive: true,
+            name: userData?.fullName || userData?.name,
+            approvedAt: new Date().toISOString(),
+            approvedBy: currentUser.email
+          });
+          
+          fetchUsers();
+          showNotif('✅ User berhasil disetujui!', 'success');
+        } catch (error) {
+          console.error('Error approving user:', error);
+          showNotif('❌ Gagal menyetujui user', 'error');
+        }
+      }
+    });
   };
 
   const handleRejectUser = async (userId) => {
-    const reason = window.prompt('Masukkan alasan penolakan:');
-    if (!reason) return;
-
-    try {
-      await updateDoc(doc(db, 'users', userId), {
-        verificationStatus: 'rejected',
-        isActive: false,
-        rejectionReason: reason,
-        rejectedAt: new Date().toISOString(),
-        rejectedBy: currentUser.email
-      });
-      
-      fetchUsers();
-      alert('User ditolak');
-    } catch (error) {
-      console.error('Error rejecting user:', error);
-      alert('Gagal menolak user');
-    }
+    showConfirmation({
+      type: 'reject',
+      title: 'Tolak Verifikasi',
+      message: 'Masukkan alasan penolakan verifikasi user ini:',
+      icon: <FaUserTimes />,
+      confirmText: 'Tolak',
+      requireInput: true,
+      inputPlaceholder: 'Contoh: Foto KTM tidak jelas, data tidak lengkap...',
+      onConfirm: async (reason) => {
+        if (!reason || reason.trim() === '') {
+          showNotif('⚠️ Alasan penolakan harus diisi!', 'warning');
+          return;
+        }
+        
+        try {
+          await updateDoc(doc(db, 'users', userId), {
+            verificationStatus: 'rejected',
+            isActive: false,
+            rejectionReason: reason,
+            rejectedAt: new Date().toISOString(),
+            rejectedBy: currentUser.email
+          });
+          
+          fetchUsers();
+          showNotif('✅ User berhasil ditolak', 'success');
+        } catch (error) {
+          console.error('Error rejecting user:', error);
+          showNotif('❌ Gagal menolak user', 'error');
+        }
+      }
+    });
   };
 
   const handleSendMessageToUser = async (user) => {
-    // Open modal with user data
-    setMessageModalData({
-      userId: user.id,
-      userName: user.name || user.fullName || user.email,
-      userEmail: user.email,
-      message: ''
+    showConfirmation({
+      type: 'message',
+      title: 'Kirim Pesan ke User',
+      message: `Kirim pesan ke ${user.name || user.fullName || user.email}:`,
+      icon: <FaPaperPlane />,
+      confirmText: 'Kirim',
+      requireInput: true,
+      inputPlaceholder: 'Tulis pesan Anda di sini...',
+      onConfirm: async (message) => {
+        if (!message || message.trim() === '') {
+          showNotif('⚠️ Pesan tidak boleh kosong!', 'warning');
+          return;
+        }
+        
+        try {
+          await addDoc(collection(db, 'adminMessages'), {
+            userId: user.id,
+            userEmail: user.email,
+            userName: user.name || user.fullName || user.email,
+            message: message,
+            sentBy: currentUser.email,
+            sentAt: new Date().toISOString(),
+            read: false,
+            status: 'unread'
+          });
+          
+          showNotif('✅ Pesan berhasil dikirim!', 'success');
+        } catch (error) {
+          console.error('Error sending message:', error);
+          showNotif('❌ Gagal mengirim pesan', 'error');
+        }
+      }
     });
-    setShowMessageModal(true);
   };
 
   const handleSendMessage = async () => {
@@ -523,60 +643,64 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteUser = async (userId, userName) => {
-    if (!window.confirm(`⚠️ PERHATIAN!\n\nAnda akan menghapus akun:\n${userName}\n\nSemua data user ini akan dihapus permanen:\n- Data profil\n- Workout logs\n- Riwayat pesan\n- Firebase Authentication\n\nUser akan langsung ter-logout!\n\nApakah Anda yakin?`)) return;
-
-    const confirmText = window.prompt('Ketik "HAPUS" untuk konfirmasi penghapusan akun:');
-    if (confirmText !== 'HAPUS') {
-      alert('Penghapusan dibatalkan');
-      return;
-    }
-
-    try {
-      setLoading(true);
-      
-      // Mark user as deleted first (this will trigger auto-logout on user's side)
-      await updateDoc(doc(db, 'users', userId), {
-        isDeleted: true,
-        deletedAt: new Date(),
-        deletedBy: currentUser.uid
-      });
-      
-      // Wait a bit for user to be logged out
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
-      // Delete user's workout logs
-      const logsQuery = query(collection(db, 'workoutLogs'), where('userId', '==', userId));
-      const logsSnapshot = await getDocs(logsQuery);
-      const deleteLogsPromises = logsSnapshot.docs.map(doc => deleteDoc(doc.ref));
-      await Promise.all(deleteLogsPromises);
-      
-      // Delete user's messages
-      const messagesQuery = query(collection(db, 'userMessages'), where('userId', '==', userId));
-      const messagesSnapshot = await getDocs(messagesQuery);
-      const deleteMessagesPromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
-      await Promise.all(deleteMessagesPromises);
-      
-      // Delete admin messages
-      const adminMessagesQuery = query(collection(db, 'adminMessages'), where('userId', '==', userId));
-      const adminMessagesSnapshot = await getDocs(adminMessagesQuery);
-      const deleteAdminMessagesPromises = adminMessagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
-      await Promise.all(deleteAdminMessagesPromises);
-      
-      // Delete user document from Firestore
-      await deleteDoc(doc(db, 'users', userId));
-      
-      // Note: To delete from Firebase Authentication, you need to set up Cloud Functions
-      // See DELETE_USER_SETUP.md for instructions
-      console.log('User deleted from Firestore. To delete from Authentication, setup Cloud Function.');
-      
-      fetchUsers();
-      alert('✅ Akun berhasil dihapus beserta semua datanya');
-    } catch (error) {
-      console.error('Error deleting user:', error);
-      alert('❌ Gagal menghapus akun: ' + error.message);
-    } finally {
-      setLoading(false);
-    }
+    showConfirmation({
+      type: 'delete-user',
+      title: '⚠️ Hapus User Permanen',
+      message: `PERINGATAN: Anda akan menghapus akun "${userName}" secara PERMANEN!\n\nSemua data akan dihapus:\n• Data profil\n• Workout logs\n• Riwayat pesan\n• Firebase Authentication\n\nUser akan langsung ter-logout!\n\nKetik "HAPUS" untuk konfirmasi:`,
+      icon: <FaTrashAlt />,
+      confirmText: 'Hapus Permanen',
+      requireInput: true,
+      inputPlaceholder: 'Ketik HAPUS untuk konfirmasi',
+      onConfirm: async (confirmText) => {
+        if (confirmText !== 'HAPUS') {
+          showNotif('⚠️ Penghapusan dibatalkan. Anda harus mengetik "HAPUS" untuk konfirmasi.', 'warning');
+          return;
+        }
+        
+        try {
+          setLoading(true);
+          
+          // Mark user as deleted first (this will trigger auto-logout on user's side)
+          await updateDoc(doc(db, 'users', userId), {
+            isDeleted: true,
+            deletedAt: new Date(),
+            deletedBy: currentUser.uid
+          });
+          
+          // Wait a bit for user to be logged out
+          await new Promise(resolve => setTimeout(resolve, 2000));
+          
+          // Delete user's workout logs
+          const logsQuery = query(collection(db, 'workoutLogs'), where('userId', '==', userId));
+          const logsSnapshot = await getDocs(logsQuery);
+          const deleteLogsPromises = logsSnapshot.docs.map(doc => deleteDoc(doc.ref));
+          await Promise.all(deleteLogsPromises);
+          
+          // Delete user's messages
+          const messagesQuery = query(collection(db, 'userMessages'), where('userId', '==', userId));
+          const messagesSnapshot = await getDocs(messagesQuery);
+          const deleteMessagesPromises = messagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+          await Promise.all(deleteMessagesPromises);
+          
+          // Delete admin messages
+          const adminMessagesQuery = query(collection(db, 'adminMessages'), where('userId', '==', userId));
+          const adminMessagesSnapshot = await getDocs(adminMessagesQuery);
+          const deleteAdminMessagesPromises = adminMessagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
+          await Promise.all(deleteAdminMessagesPromises);
+          
+          // Delete user document from Firestore
+          await deleteDoc(doc(db, 'users', userId));
+          
+          fetchUsers();
+          showNotif('✅ Akun berhasil dihapus beserta semua datanya', 'success');
+        } catch (error) {
+          console.error('Error deleting user:', error);
+          showNotif('❌ Gagal menghapus akun: ' + error.message, 'error');
+        } finally {
+          setLoading(false);
+        }
+      }
+    });
   };
 
   const filterUsersByTab = (tabName, usersData = null) => {
@@ -1279,9 +1403,58 @@ const AdminDashboard = () => {
                       className="btn-send-message"
                       onClick={() => handleSendMessageToUser(selectedUser)}
                     >
-                      <span className="btn-icon">✉️</span>
+                      <FaPaperPlane className="btn-icon" />
                       Kirim Pesan
                     </button>
+                    
+                    {selectedUser.verificationStatus === 'pending' && selectedUser.role !== 'admin' && (
+                      <>
+                        <button
+                          onClick={() => handleApproveUser(selectedUser.id, selectedUser.isIbafMember)}
+                          className="btn-approve-detail"
+                        >
+                          <FaUserCheck className="btn-icon" />
+                          Setujui
+                        </button>
+                        <button
+                          onClick={() => handleRejectUser(selectedUser.id)}
+                          className="btn-reject-detail"
+                        >
+                          <FaUserTimes className="btn-icon" />
+                          Tolak
+                        </button>
+                      </>
+                    )}
+                    
+                    {selectedUser.role !== 'admin' && (
+                      <>
+                        {selectedUser.isBanned ? (
+                          <button
+                            onClick={() => handleUnbanUser(selectedUser.id)}
+                            className="btn-unban-detail"
+                          >
+                            <FaCheckCircle className="btn-icon" />
+                            Unban
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => handleBanUser(selectedUser.id)}
+                            className="btn-ban-detail"
+                          >
+                            <FaBan className="btn-icon" />
+                            Ban
+                          </button>
+                        )}
+                        
+                        <button
+                          onClick={() => handleDeleteUser(selectedUser.id, selectedUser.name || selectedUser.fullName || selectedUser.email)}
+                          className="btn-delete-detail"
+                        >
+                          <FaTrashAlt className="btn-icon" />
+                          Hapus
+                        </button>
+                      </>
+                    )}
                   </div>
                 </div>
 
@@ -1608,6 +1781,59 @@ const AdminDashboard = () => {
                 Kirim Pesan
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Beautiful Confirmation Modal */}
+      {showConfirmModal && (
+        <div className="confirm-modal-overlay" onClick={() => setShowConfirmModal(false)}>
+          <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <div className={`confirm-modal-icon ${confirmModalData.type}`}>
+              {confirmModalData.icon}
+            </div>
+            
+            <h2 className="confirm-modal-title">{confirmModalData.title}</h2>
+            
+            <p className="confirm-modal-message">{confirmModalData.message}</p>
+            
+            {confirmModalData.requireInput && (
+              <textarea
+                className="confirm-modal-input"
+                placeholder={confirmModalData.inputPlaceholder}
+                value={confirmModalData.inputValue}
+                onChange={(e) => setConfirmModalData({...confirmModalData, inputValue: e.target.value})}
+                rows={confirmModalData.type === 'message' ? 4 : 1}
+              />
+            )}
+            
+            <div className="confirm-modal-actions">
+              <button 
+                className="confirm-btn-cancel"
+                onClick={() => setShowConfirmModal(false)}
+              >
+                {confirmModalData.cancelText}
+              </button>
+              <button 
+                className={`confirm-btn-confirm ${confirmModalData.type}`}
+                onClick={handleModalConfirm}
+              >
+                {confirmModalData.confirmText}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Notification Toast */}
+      {showNotification && (
+        <div className={`admin-notification ${notificationType}`}>
+          <div className="notification-content">
+            {notificationType === 'success' && <FaCheckCircle className="notif-icon" />}
+            {notificationType === 'error' && <FaTimesCircle className="notif-icon" />}
+            {notificationType === 'warning' && <FaExclamationTriangle className="notif-icon" />}
+            {notificationType === 'info' && <FaExclamationTriangle className="notif-icon" />}
+            <span>{notificationMessage}</span>
           </div>
         </div>
       )}
