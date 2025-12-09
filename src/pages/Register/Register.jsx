@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification } from 'firebase/auth';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../../config/firebase';
 import { useAuth } from '../../contexts/AuthContext';
@@ -16,6 +16,7 @@ const Register = () => {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [emailSent, setEmailSent] = useState(false);
   
   const { loginWithGoogle } = useAuth();
   const navigate = useNavigate();
@@ -57,16 +58,29 @@ const Register = () => {
         formData.password
       );
 
-      // Add user data to Firestore with 'user' role
+      // Send email verification
+      const actionCodeSettings = {
+        url: `${window.location.origin}/login?verified=true`,
+        handleCodeInApp: false,
+      };
+      
+      await sendEmailVerification(userCredential.user, actionCodeSettings);
+
+      // Add user data to Firestore with 'user' role and emailVerified status
       await setDoc(doc(db, 'users', userCredential.user.uid), {
         name: formData.name,
         email: formData.email,
         role: 'user',
+        emailVerified: false,
         createdAt: new Date().toISOString()
       });
 
-      // Redirect to user dashboard
-      navigate('/dashboard');
+      // Show success message
+      setEmailSent(true);
+      
+      // Sign out user until they verify email
+      await auth.signOut();
+      
     } catch (error) {
       console.error('Registration error:', error);
       
@@ -94,21 +108,28 @@ const Register = () => {
       setLoading(true);
       const userCredential = await loginWithGoogle();
       
-      // Check role and redirect
+      // Check user data including verification status
       let userRole = 'user';
+      let verificationStatus = null;
+      
       try {
         const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
         if (userDoc.exists()) {
-          userRole = userDoc.data().role || 'user';
+          const userData = userDoc.data();
+          userRole = userData.role || 'user';
+          verificationStatus = userData.verificationStatus;
+          console.log('Google Register - User data:', { userRole, verificationStatus });
         }
       } catch (firestoreError) {
         console.warn('Could not fetch user role:', firestoreError);
       }
       
-      // Redirect based on role
+      // All Google users (new or existing) must go through verification
+      // They will be redirected to dashboard where they need to submit verification
       if (userRole === 'admin') {
         navigate('/admin');
       } else {
+        // Regular users always go to dashboard to complete verification
         navigate('/dashboard');
       }
     } catch (error) {
@@ -132,8 +153,8 @@ const Register = () => {
         {/* Left Side - Image */}
         <div className="register-promo">
           <img 
-            src="/src/img/logo_ibaf.png" 
-            alt="IBAF UPI" 
+            src="/src/img/ketum.png" 
+            alt="Ketua Umum IBAF UPI" 
             className="promo-image"
           />
         </div>
@@ -141,6 +162,30 @@ const Register = () => {
         {/* Right Side - Register Form */}
         <div className="register-form-section">
           <div className="register-card">
+            {emailSent ? (
+              <div className="email-verification-sent">
+                <div className="verification-icon">📧</div>
+                <h2>Email Verifikasi Terkirim!</h2>
+                <p className="verification-message">
+                  Kami telah mengirim email verifikasi ke <strong>{formData.email}</strong>
+                </p>
+                <p className="verification-instructions">
+                  Silakan cek inbox email Anda dan klik link verifikasi untuk mengaktifkan akun Anda.
+                </p>
+                <div className="verification-tips">
+                  <p><strong>Tips:</strong></p>
+                  <ul>
+                    <li>Cek folder Spam/Junk jika tidak menemukan email</li>
+                    <li>Email akan dikirim dari Firebase</li>
+                    <li>Link verifikasi berlaku selama 24 jam</li>
+                  </ul>
+                </div>
+                <Link to="/login" className="btn-back-login">
+                  Kembali ke Login
+                </Link>
+              </div>
+            ) : (
+              <>
             <h2 className="register-title">Daftar Akun Baru</h2>
             <p className="register-subtitle">Bergabung dengan IBAF UPI sekarang</p>
             
@@ -238,6 +283,8 @@ const Register = () => {
             <div className="back-home">
               <Link to="/">← Kembali ke Beranda</Link>
             </div>
+            </>
+            )}
           </div>
         </div>
       </div>

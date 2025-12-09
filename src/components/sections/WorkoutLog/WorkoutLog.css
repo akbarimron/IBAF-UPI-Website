@@ -96,6 +96,32 @@
   margin: 0;
 }
 
+.workout-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.export-workout-btn {
+  padding: 12px 24px;
+  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.export-workout-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+}
+
 .add-workout-btn {
   padding: 12px 24px;
   background: linear-gradient(135deg, #B63333 0%, #8B0000 100%);
@@ -114,16 +140,113 @@
 
 /* Week Selector */
 .week-selector {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   background: white;
   padding: 20px;
   border-radius: 12px;
   margin-bottom: 30px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
   gap: 15px;
   flex-wrap: wrap;
+}
+
+.week-label {
+  font-weight: 600;
+  color: #333;
+  font-size: 16px;
+}
+
+.week-dropdown {
+  padding: 12px 40px 12px 16px;
+  background: #f5f5f5;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 15px;
+  color: #333;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23333' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  min-width: 180px;
+}
+
+.week-dropdown:hover {
+  border-color: #B63333;
+  background: #fff;
+}
+
+.week-dropdown:focus {
+  outline: none;
+  border-color: #B63333;
+  box-shadow: 0 0 0 3px rgba(182, 51, 51, 0.1);
+}
+
+.week-current-display {
+  padding: 12px 16px;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid #e0e0e0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 200px;
+}
+
+.week-current-label {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1a1a1a;
+}
+
+.week-current-category {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.week-buttons-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 10px;
+  width: 100%;
+}
+
+.week-btn {
+  padding: 12px 16px;
+  background: #f5f5f5;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #666;
+  white-space: nowrap;
+}
+
+.week-btn:hover {
+  background: #e8e8e8;
+  border-color: #B63333;
+  color: #B63333;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(182, 51, 51, 0.2);
+}
+
+.week-btn.active {
+  background: linear-gradient(135deg, #B63333 0%, #8B0000 100%);
+  color: white;
+  border-color: #B63333;
+  box-shadow: 0 4px 12px rgba(182, 51, 51, 0.3);
+}
+
+.week-btn.active:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(182, 51, 51, 0.4);
 }
 
 .week-nav-btn {
@@ -520,6 +643,10 @@
   font-size: 14px;
   font-weight: 600;
   transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
 }
 
 .btn-edit-log {
@@ -873,7 +1000,9 @@
   background: linear-gradient(135deg, #f44336 0%, #c62828 100%);
   color: white;
   padding: 20px 25px;
-  text-align: center;
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .delete-modal-header h3 {
@@ -888,8 +1017,13 @@
 }
 
 .delete-icon {
-  font-size: 60px;
-  margin-bottom: 15px;
+  font-size: 48px;
+  margin-bottom: 20px;
+  color: #f44336;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
 }
 
 .delete-modal-body p {
@@ -1002,16 +1136,45 @@
     font-size: 18px;
   }
 
+  .workout-header-actions {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .export-workout-btn,
   .add-workout-btn {
     padding: 10px 18px;
     font-size: 14px;
+    width: 100%;
+    justify-content: center;
   }
 
   .week-selector {
     padding: 15px;
-    flex-wrap: wrap;
-    gap: 10px;
-    justify-content: center;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .week-label {
+    font-size: 14px;
+  }
+
+  .week-dropdown {
+    width: 100%;
+    min-width: auto;
+  }
+
+  .week-current-display {
+    min-width: auto;
+    width: 100%;
+  }
+
+  .week-current-label {
+    font-size: 16px;
+  }
+
+  .week-current-category {
+    font-size: 12px;
   }
 
   .week-display {
@@ -1129,6 +1292,7 @@
     font-size: 16px;
   }
 
+  .export-workout-btn,
   .add-workout-btn {
     padding: 8px 15px;
     font-size: 13px;
@@ -1136,21 +1300,27 @@
 
   .week-selector {
     padding: 12px;
-    flex-direction: column;
-    gap: 10px;
   }
 
-  .week-display {
+  .week-label {
+    font-size: 13px;
+  }
+
+  .week-dropdown {
+    padding: 10px 35px 10px 12px;
     font-size: 14px;
-    width: 100%;
-    text-align: center;
-    order: -1;
   }
 
-  .week-nav-btn {
+  .week-current-display {
     padding: 10px 12px;
-    font-size: 12px;
-    width: 100%;
+  }
+
+  .week-current-label {
+    font-size: 14px;
+  }
+
+  .week-current-category {
+    font-size: 11px;
   }
 
   .workout-modal {
@@ -1290,4 +1460,51 @@
     padding: 5px;
     font-size: 9px;
   }
+}
+
+/* Export Modal Styling */
+.export-modal {
+  max-width: 480px;
+}
+
+.export-header {
+  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+}
+
+.export-icon {
+  width: 70px;
+  height: 70px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  color: white;
+  font-size: 32px;
+  box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+}
+
+.export-info {
+  font-size: 13px;
+  color: #666;
+  margin-top: 10px;
+  font-style: italic;
+}
+
+.export-confirm-btn {
+  background: linear-gradient(135deg, #4CAF50 0%, #2E7D32 100%);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  font-size: 14px;
+}
+
+.export-confirm-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
 }

@@ -78,15 +78,18 @@ export const AuthProvider = ({ children }) => {
       const userDoc = await getDoc(doc(db, 'users', userCredential.user.uid));
       
       if (!userDoc.exists()) {
-        // Create new user document for Google sign-in
+        // Create new user document for Google sign-in - NO VERIFICATION STATUS
+        // User must complete verification like email/password users
         await setDoc(doc(db, 'users', userCredential.user.uid), {
           name: userCredential.user.displayName || 'User',
           email: userCredential.user.email,
           role: 'user',
           createdAt: new Date().toISOString(),
-          photoURL: userCredential.user.photoURL || ''
+          photoURL: userCredential.user.photoURL || '',
+          verificationStatus: 'not_submitted', // Force verification
+          emailVerified: true // Google accounts are already verified
         });
-        console.log('AuthContext - Created new user document for Google user');
+        console.log('AuthContext - Created new user document for Google user (needs verification)');
         setUserRole('user');
         setUserName(userCredential.user.displayName || 'User');
       } else {

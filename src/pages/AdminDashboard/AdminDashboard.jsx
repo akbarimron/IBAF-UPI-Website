@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { 
@@ -10,9 +10,11 @@ import {
   where,
   deleteDoc,
   addDoc,
-  onSnapshot
+  onSnapshot,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
+import { FaUser, FaUserNinja, FaUserAstronaut, FaUserTie, FaUserGraduate, FaRobot, FaDumbbell, FaCat, FaDog, FaDragon, FaFrog, FaHorse, FaOtter, FaKiwiBird, FaFish } from 'react-icons/fa';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -44,9 +46,83 @@ const AdminDashboard = () => {
     totalMessages: 0,
     pendingMessages: 0
   });
+  
+  // Admin profile state
+  const [adminData, setAdminData] = useState(null);
+  const [selectedAvatar, setSelectedAvatar] = useState({ icon: 'FaUserShield', color: '#B63333' });
+  
+  // Avatar options (same as user)
+  const avatarIcons = [
+    { name: 'FaUser', component: FaUser, label: 'User' },
+    { name: 'FaUserNinja', component: FaUserNinja, label: 'Ninja' },
+    { name: 'FaUserAstronaut', component: FaUserAstronaut, label: 'Astronaut' },
+    { name: 'FaUserTie', component: FaUserTie, label: 'Professional' },
+    { name: 'FaUserGraduate', component: FaUserGraduate, label: 'Graduate' },
+    { name: 'FaRobot', component: FaRobot, label: 'Robot' },
+    { name: 'FaDumbbell', component: FaDumbbell, label: 'Fitness' },
+    { name: 'FaCat', component: FaCat, label: 'Cat' },
+    { name: 'FaDog', component: FaDog, label: 'Dog' },
+    { name: 'FaDragon', component: FaDragon, label: 'Dragon' },
+    { name: 'FaFrog', component: FaFrog, label: 'Frog' },
+    { name: 'FaHorse', component: FaHorse, label: 'Horse' },
+    { name: 'FaOtter', component: FaOtter, label: 'Otter' },
+    { name: 'FaKiwiBird', component: FaKiwiBird, label: 'Bird' },
+    { name: 'FaFish', component: FaFish, label: 'Fish' },
+  ];
+  
+  // Helper function to get avatar component
+  const getAvatarComponent = useCallback((iconName) => {
+    const avatar = avatarIcons.find(a => a.name === iconName);
+    return avatar ? avatar.component : FaUser;
+  }, []);
 
   useEffect(() => {
-    fetchData();
+    // Fetch admin profile data
+    const fetchAdminData = async () => {
+      if (currentUser) {
+        try {
+          const docRef = doc(db, 'users', currentUser.uid);
+          const docSnap = await getDoc(docRef);
+          
+          if (docSnap.exists()) {
+            const data = docSnap.data();
+            setAdminData(data);
+            
+            // Set avatar if exists
+            if (data.avatar) {
+              setSelectedAvatar(data.avatar);
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching admin data:', error);
+        }
+      }
+    };
+    
+    fetchAdminData();
+    
+    // Set up real-time listeners
+    // Users realtime listener
+    const usersUnsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const usersData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+      setUsers(usersData);
+      
+      // Apply current filter
+      filterUsersByTab(userFilterTab, usersData);
+      
+      // Update stats
+      const activeCount = usersData.filter(u => u.isActive !== false).length;
+      const pendingVerifications = usersData.filter(u => u.verificationStatus === 'pending').length;
+      setStats(prev => ({
+        ...prev,
+        totalUsers: usersData.length,
+        activeUsers: activeCount,
+        pendingVerifications: pendingVerifications
+      }));
+    });
     
     // Set up real-time listeners for both user messages and admin messages
     const userMessagesQuery = collection(db, 'userMessages');   
@@ -158,10 +234,11 @@ const AdminDashboard = () => {
     
     // Cleanup listeners on unmount
     return () => {
+      usersUnsubscribe();
       unsubscribeUserMessages();
       unsubscribeAdminMessages();
     };
-  }, []);
+  }, [currentUser]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -446,7 +523,7 @@ const AdminDashboard = () => {
   };
 
   const handleDeleteUser = async (userId, userName) => {
-    if (!window.confirm(`⚠️ PERHATIAN!\n\nAnda akan menghapus akun:\n${userName}\n\nSemua data user ini akan dihapus permanen:\n- Data profil\n- Workout logs\n- Riwayat pesan\n\nApakah Anda yakin?`)) return;
+    if (!window.confirm(`⚠️ PERHATIAN!\n\nAnda akan menghapus akun:\n${userName}\n\nSemua data user ini akan dihapus permanen:\n- Data profil\n- Workout logs\n- Riwayat pesan\n- Firebase Authentication\n\nUser akan langsung ter-logout!\n\nApakah Anda yakin?`)) return;
 
     const confirmText = window.prompt('Ketik "HAPUS" untuk konfirmasi penghapusan akun:');
     if (confirmText !== 'HAPUS') {
@@ -456,6 +533,16 @@ const AdminDashboard = () => {
 
     try {
       setLoading(true);
+      
+      // Mark user as deleted first (this will trigger auto-logout on user's side)
+      await updateDoc(doc(db, 'users', userId), {
+        isDeleted: true,
+        deletedAt: new Date(),
+        deletedBy: currentUser.uid
+      });
+      
+      // Wait a bit for user to be logged out
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       // Delete user's workout logs
       const logsQuery = query(collection(db, 'workoutLogs'), where('userId', '==', userId));
@@ -475,8 +562,12 @@ const AdminDashboard = () => {
       const deleteAdminMessagesPromises = adminMessagesSnapshot.docs.map(doc => deleteDoc(doc.ref));
       await Promise.all(deleteAdminMessagesPromises);
       
-      // Finally delete user document
+      // Delete user document from Firestore
       await deleteDoc(doc(db, 'users', userId));
+      
+      // Note: To delete from Firebase Authentication, you need to set up Cloud Functions
+      // See DELETE_USER_SETUP.md for instructions
+      console.log('User deleted from Firestore. To delete from Authentication, setup Cloud Function.');
       
       fetchUsers();
       alert('✅ Akun berhasil dihapus beserta semua datanya');
@@ -488,26 +579,27 @@ const AdminDashboard = () => {
     }
   };
 
-  const filterUsersByTab = (tabName) => {
+  const filterUsersByTab = (tabName, usersData = null) => {
     setUserFilterTab(tabName);
-    let filtered = [...users];
+    const usersList = usersData || users;
+    let filtered = [...usersList];
     
     switch(tabName) {
       case 'approved':
-        filtered = users.filter(u => u.verificationStatus === 'approved');
+        filtered = usersList.filter(u => u.verificationStatus === 'approved');
         break;
       case 'pending':
-        filtered = users.filter(u => u.verificationStatus === 'pending');
+        filtered = usersList.filter(u => u.verificationStatus === 'pending');
         break;
       case 'rejected':
-        filtered = users.filter(u => u.verificationStatus === 'rejected');
+        filtered = usersList.filter(u => u.verificationStatus === 'rejected');
         break;
       case 'not_submitted':
-        filtered = users.filter(u => !u.verificationStatus || u.verificationStatus === 'not_submitted');
+        filtered = usersList.filter(u => !u.verificationStatus || u.verificationStatus === 'not_submitted');
         break;
       case 'all':
       default:
-        filtered = users;
+        filtered = usersList;
     }
     
     setFilteredUsers(filtered);
@@ -575,7 +667,13 @@ const AdminDashboard = () => {
           <div className="sidebar-content">
           <div className="admin-info-card">
             <div className="admin-avatar">
-              <div className="avatar-placeholder">A</div>
+              {adminData?.avatar ? (
+                <div className="avatar-icon-display" style={{ color: adminData.avatar.color || selectedAvatar.color }}>
+                  {React.createElement(getAvatarComponent(adminData.avatar.icon || selectedAvatar.icon), { size: 50 })}
+                </div>
+              ) : (
+                <div className="avatar-placeholder">A</div>
+              )}
             </div>
             <h3>Admin Panel</h3>
             <p className="admin-email">{currentUser?.email}</p>
@@ -808,7 +906,11 @@ const AdminDashboard = () => {
                       <tr key={user.id}>
                         <td>
                           <div className="user-photo">
-                            {user.photoURL ? (
+                            {user.avatar ? (
+                              <div className="avatar-icon-display" style={{ color: user.avatar.color }}>
+                                {React.createElement(getAvatarComponent(user.avatar.icon), { size: 30 })}
+                              </div>
+                            ) : user.photoURL ? (
                               <img src={user.photoURL} alt={user.name} />
                             ) : (
                               <div className="photo-placeholder">

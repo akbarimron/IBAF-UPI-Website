@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { FaUser, FaSignOutAlt, FaTachometerAlt, FaSignInAlt, FaUserPlus, FaBars, FaTimes } from 'react-icons/fa';
+import { FaUser, FaSignOutAlt, FaTachometerAlt, FaSignInAlt, FaUserPlus, FaBars, FaTimes, FaHome } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import logoIBAF from '../../../img/logo_ibaf.png';
@@ -115,7 +115,7 @@ export default function Navbar() {
                       <span>Dashboard</span>
                     </button>
                     <button className="mobile-menu-item" onClick={() => { navigate('/'); setShowMobileMenu(false); }}>
-                      <span>🏠</span>
+                      <FaHome />
                       <span>Beranda</span>
                     </button>
                     <div className="mobile-menu-divider"></div>

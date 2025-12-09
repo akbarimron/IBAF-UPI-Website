@@ -153,6 +153,13 @@
 
 .admin-avatar {
   margin-bottom: 1rem;
+  width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .avatar-placeholder {
@@ -166,9 +173,17 @@
   justify-content: center;
   font-size: 1.4rem;
   font-weight: 600;
-  margin: 0 auto;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.admin-avatar .avatar-icon-display {
+  font-size: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
 }
 
 .admin-info-card h3 {
@@ -646,6 +661,9 @@
 .user-photo {
   width: 50px;
   height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .user-photo img {
@@ -653,6 +671,17 @@
   height: 100%;
   border-radius: 50%;
   object-fit: cover;
+  border: 2px solid #e9ecef;
+}
+
+.user-photo .avatar-icon-display {
+  font-size: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
   border: 2px solid #e9ecef;
 }
 
