@@ -7,7 +7,7 @@ import './WorkoutLog.css';
 const WorkoutLog = () => {
   const { currentUser } = useAuth();
   const [workoutLogs, setWorkoutLogs] = useState([]);
-  const [currentWeek, setCurrentWeek] = useState(1);
+  const [currentWeek, setCurrentWeek] = useState(0);
   const [selectedDay, setSelectedDay] = useState(1);
   const [workoutDate, setWorkoutDate] = useState(new Date().toISOString().split('T')[0]);
   const [exercises, setExercises] = useState([
@@ -17,9 +17,27 @@ const WorkoutLog = () => {
   const [showForm, setShowForm] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [editLogId, setEditLogId] = useState(null);
+  const [showExerciseModal, setShowExerciseModal] = useState(false);
+  const [newExerciseName, setNewExerciseName] = useState('');
+  const [showWorkoutModal, setShowWorkoutModal] = useState(false);
+  const [notification, setNotification] = useState({ show: false, message: '', type: '' });
+  const [deleteConfirm, setDeleteConfirm] = useState({ show: false, logId: null });
 
   const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
-  const totalWeeks = 8;
+  const totalWeeks = 9;
+  
+  const getWeekLabel = (weekNum) => {
+    if (weekNum === 0) return 'Pre-Test';
+    if (weekNum === 9) return 'Post-Test';
+    return `Minggu ${weekNum}`;
+  };
+
+  const showNotification = (message, type = 'success') => {
+    setNotification({ show: true, message, type });
+    setTimeout(() => {
+      setNotification({ show: false, message: '', type: '' });
+    }, 3000);
+  };
 
   useEffect(() => {
     if (currentUser) {
@@ -72,8 +90,17 @@ const WorkoutLog = () => {
 
   const addExercise = () => {
     if (exercises.length < 7) {
-      setExercises([...exercises, { name: '', sets: [{ weight: '', reps: '' }] }]);
+      if (newExerciseName.trim()) {
+        setExercises([...exercises, { name: newExerciseName.trim(), sets: [{ weight: '', reps: '' }] }]);
+        setNewExerciseName('');
+        setShowExerciseModal(false);
+      }
     }
+  };
+
+  const openExerciseModal = () => {
+    setShowExerciseModal(true);
+    setNewExerciseName('');
   };
 
   const removeExercise = (index) => {
@@ -114,6 +141,7 @@ const WorkoutLog = () => {
       const workoutData = {
         userId: currentUser.uid,
         userEmail: currentUser.email,
+        weekNumber: currentWeek,
         week: currentWeek,
         day: selectedDay,
         dayName: days[selectedDay - 1],
@@ -130,11 +158,12 @@ const WorkoutLog = () => {
       setExercises([{ name: '', sets: [{ weight: '', reps: '' }] }]);
       setWorkoutDate(new Date().toISOString().split('T')[0]);
       setShowForm(false);
+      setShowWorkoutModal(false);
       fetchWorkoutLogs();
-      alert('Workout log berhasil disimpan!');
+      showNotification('Workout log berhasil disimpan!', 'success');
     } catch (error) {
       console.error('Error saving workout log:', error);
-      alert('Gagal menyimpan workout log');
+      showNotification('Gagal menyimpan workout log', 'error');
     } finally {
       setLoading(false);
     }
@@ -160,7 +189,11 @@ const WorkoutLog = () => {
     setLoading(true);
     try {
       const validExercises = exercises.filter(ex => ex.name.trim());
-      const totalVolume = calculateVolume(validExercises);
+      
+      // Calculate total volume correctly
+      const totalVolume = validExercises.reduce((total, exercise) => {
+        return total + calculateVolume(exercise.sets);
+      }, 0);
 
       await updateDoc(doc(db, 'workoutLogs', editLogId), {
         workoutDate: workoutDate,
@@ -172,13 +205,14 @@ const WorkoutLog = () => {
       setExercises([{ name: '', sets: [{ weight: '', reps: '' }] }]);
       setWorkoutDate(new Date().toISOString().split('T')[0]);
       setShowForm(false);
+      setShowWorkoutModal(false);
       setEditMode(false);
       setEditLogId(null);
       fetchWorkoutLogs();
-      alert('Workout log berhasil diupdate!');
+      showNotification('Workout log berhasil diupdate!', 'success');
     } catch (error) {
       console.error('Error updating workout log:', error);
-      alert('Gagal mengupdate workout log');
+      showNotification('Gagal mengupdate workout log', 'error');
     } finally {
       setLoading(false);
     }
@@ -192,15 +226,19 @@ const WorkoutLog = () => {
   };
 
   const deleteWorkoutLog = async (logId) => {
-    if (window.confirm('Hapus workout log ini?')) {
-      try {
-        await deleteDoc(doc(db, 'workoutLogs', logId));
-        fetchWorkoutLogs();
-        alert('Workout log berhasil dihapus');
-      } catch (error) {
-        console.error('Error deleting workout log:', error);
-        alert('Gagal menghapus workout log');
-      }
+    setDeleteConfirm({ show: true, logId });
+  };
+
+  const confirmDelete = async () => {
+    try {
+      await deleteDoc(doc(db, 'workoutLogs', deleteConfirm.logId));
+      fetchWorkoutLogs();
+      showNotification('Workout log berhasil dihapus', 'success');
+    } catch (error) {
+      console.error('Error deleting workout log:', error);
+      showNotification('Gagal menghapus workout log', 'error');
+    } finally {
+      setDeleteConfirm({ show: false, logId: null });
     }
   };
 
@@ -210,11 +248,35 @@ const WorkoutLog = () => {
 
   return (
     <div className="workout-log-container">
+      {/* Notification Popup */}
+      {notification.show && (
+        <div className={`notification-popup ${notification.type}`}>
+          <div className="notification-content">
+            <span className="notification-icon">
+              {notification.type === 'success' && '✓'}
+              {notification.type === 'error' && '✕'}
+              {notification.type === 'warning' && '⚠'}
+            </span>
+            <span className="notification-message">{notification.message}</span>
+          </div>
+        </div>
+      )}
+
       <div className="workout-header">
         <h2>Workout Log - Program 8 Minggu</h2>
         <button 
           className="add-workout-btn"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => {
+            if (showForm && showWorkoutModal) {
+              setShowWorkoutModal(false);
+              setShowForm(false);
+              setEditMode(false);
+            } else {
+              setShowWorkoutModal(true);
+              setShowForm(true);
+              setEditMode(false);
+            }
+          }}
         >
           {showForm ? '✕ Tutup' : '+ Tambah Workout'}
         </button>
@@ -223,13 +285,13 @@ const WorkoutLog = () => {
       {/* Week Selector */}
       <div className="week-selector">
         <button 
-          onClick={() => setCurrentWeek(prev => Math.max(1, prev - 1))}
-          disabled={currentWeek === 1}
+          onClick={() => setCurrentWeek(prev => Math.max(0, prev - 1))}
+          disabled={currentWeek === 0}
           className="week-nav-btn"
         >
           ← Minggu Sebelumnya
         </button>
-        <span className="week-display">Minggu {currentWeek} dari {totalWeeks}</span>
+        <span className="week-display">{getWeekLabel(currentWeek)} dari {totalWeeks + 1} tahap</span>
         <button 
           onClick={() => setCurrentWeek(prev => Math.min(totalWeeks, prev + 1))}
           disabled={currentWeek === totalWeeks}
@@ -239,10 +301,29 @@ const WorkoutLog = () => {
         </button>
       </div>
 
-      {/* Add/Edit Workout Form */}
-      {showForm && (
+      {/* Add/Edit Workout Form Modal */}
+      {showForm && showWorkoutModal && (
+        <div className="workout-modal-overlay" onClick={() => {
+          setShowWorkoutModal(false);
+          setShowForm(false);
+          setEditMode(false);
+        }}>
+          <div className="workout-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="workout-modal-header">
+              <h3>{editMode ? `Edit Workout - ${getWeekLabel(currentWeek)} - ${days[selectedDay - 1]}` : `Tambah Workout - ${getWeekLabel(currentWeek)}`}</h3>
+              <button 
+                className="workout-modal-close"
+                onClick={() => {
+                  setShowWorkoutModal(false);
+                  setShowForm(false);
+                  setEditMode(false);
+                }}
+              >
+                ✕
+              </button>
+            </div>
         <div className="workout-form-card">
-          <h3>{editMode ? `Edit Workout - Minggu ${currentWeek} - ${days[selectedDay - 1]}` : `Tambah Workout - Minggu ${currentWeek}`}</h3>
+          <h3>{editMode ? `Edit Workout - ${getWeekLabel(currentWeek)} - ${days[selectedDay - 1]}` : `Tambah Workout - ${getWeekLabel(currentWeek)}`}</h3>
           <form onSubmit={editMode ? handleUpdate : handleSubmit}>
             {/* Date Input */}
             <div className="form-group">
@@ -361,7 +442,7 @@ const WorkoutLog = () => {
             {exercises.length < 7 && (
               <button
                 type="button"
-                onClick={addExercise}
+                onClick={openExerciseModal}
                 className="add-exercise-btn"
               >
                 + Tambah Exercise
@@ -374,7 +455,14 @@ const WorkoutLog = () => {
               </button>
               <button 
                 type="button" 
-                onClick={editMode ? handleCancelEdit : () => setShowForm(false)} 
+                onClick={() => {
+                  if (editMode) {
+                    handleCancelEdit();
+                  }
+                  setShowWorkoutModal(false);
+                  setShowForm(false);
+                  setEditMode(false);
+                }} 
                 className="cancel-btn"
               >
                 Batal
@@ -382,11 +470,13 @@ const WorkoutLog = () => {
             </div>
           </form>
         </div>
+          </div>
+        </div>
       )}
 
       {/* Weekly Overview */}
       <div className="week-overview">
-        <h3>Overview Minggu {currentWeek}</h3>
+        <h3>Overview {getWeekLabel(currentWeek)}</h3>
         <div className="days-grid">
           {days.map((day, index) => {
             const dayLog = getDayLog(index + 1);
@@ -423,7 +513,7 @@ const WorkoutLog = () => {
       {/* Detailed Logs */}
       {workoutLogs.length > 0 && (
         <div className="detailed-logs">
-          <h3>Detail Workout Minggu {currentWeek}</h3>
+          <h3>Detail Workout {getWeekLabel(currentWeek)}</h3>
           {workoutLogs.map((log) => (
             <div key={log.id} className="log-detail-card">
               <div className="log-header">
@@ -440,7 +530,10 @@ const WorkoutLog = () => {
                 </div>
                 <div className="log-actions">
                   <button 
-                    onClick={() => handleEdit(log)}
+                    onClick={() => {
+                      handleEdit(log);
+                      setShowWorkoutModal(true);
+                    }}
                     className="btn-edit-log"
                     title="Edit Workout"
                   >
@@ -458,30 +551,32 @@ const WorkoutLog = () => {
               {log.exercises.map((exercise, idx) => (
                 <div key={idx} className="exercise-detail">
                   <h5>{exercise.name}</h5>
-                  <table className="sets-table">
-                    <thead>
-                      <tr>
-                        <th>Set</th>
-                        <th>Weight (kg)</th>
-                        <th>Reps</th>
-                        <th>Volume</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {exercise.sets.map((set, setIdx) => (
-                        <tr key={setIdx}>
-                          <td>{setIdx + 1}</td>
-                          <td>{set.weight}</td>
-                          <td>{set.reps}</td>
-                          <td>{(parseFloat(set.weight) * parseInt(set.reps)).toFixed(1)}</td>
+                  <div className="table-wrapper">
+                    <table className="sets-table">
+                      <thead>
+                        <tr>
+                          <th>Set</th>
+                          <th>Weight (kg)</th>
+                          <th>Reps</th>
+                          <th>Volume</th>
                         </tr>
-                      ))}
-                      <tr className="total-row">
-                        <td colSpan="3"><strong>Total Volume</strong></td>
-                        <td><strong>{calculateVolume(exercise.sets).toFixed(1)} kg</strong></td>
-                      </tr>
-                    </tbody>
-                  </table>
+                      </thead>
+                      <tbody>
+                        {exercise.sets.map((set, setIdx) => (
+                          <tr key={setIdx}>
+                            <td>{setIdx + 1}</td>
+                            <td>{set.weight}</td>
+                            <td>{set.reps}</td>
+                            <td>{(parseFloat(set.weight) * parseInt(set.reps)).toFixed(1)}</td>
+                          </tr>
+                        ))}
+                        <tr className="total-row">
+                          <td colSpan="3"><strong>Total Volume</strong></td>
+                          <td><strong>{calculateVolume(exercise.sets).toFixed(1)} kg</strong></td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               ))}
               <div className="log-total-volume">
@@ -489,6 +584,88 @@ const WorkoutLog = () => {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      {/* Exercise Modal */}
+      {showExerciseModal && (
+        <div className="exercise-modal-overlay" onClick={() => setShowExerciseModal(false)}>
+          <div className="exercise-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h3>Tambah Exercise Baru</h3>
+              <button 
+                className="modal-close-btn"
+                onClick={() => setShowExerciseModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className="modal-body">
+              <label>Nama Exercise:</label>
+              <input
+                type="text"
+                placeholder="Contoh: Bench Press, Squat, Deadlift..."
+                value={newExerciseName}
+                onChange={(e) => setNewExerciseName(e.target.value)}
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter' && newExerciseName.trim()) {
+                    addExercise();
+                  }
+                }}
+                className="exercise-modal-input"
+                autoFocus
+              />
+            </div>
+            
+            <div className="modal-footer">
+              <button 
+                className="modal-cancel-btn"
+                onClick={() => setShowExerciseModal(false)}
+              >
+                Batal
+              </button>
+              <button 
+                className="modal-add-btn"
+                onClick={addExercise}
+                disabled={!newExerciseName.trim()}
+              >
+                Tambah
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {deleteConfirm.show && (
+        <div className="delete-modal-overlay" onClick={() => setDeleteConfirm({ show: false, logId: null })}>
+          <div className="delete-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="delete-modal-header">
+              <h3>Konfirmasi Hapus</h3>
+            </div>
+            
+            <div className="delete-modal-body">
+              <div className="delete-icon">🗑️</div>
+              <p>Apakah Anda yakin ingin menghapus workout log ini?</p>
+              <p className="delete-warning">Tindakan ini tidak dapat dibatalkan.</p>
+            </div>
+            
+            <div className="delete-modal-footer">
+              <button 
+                className="delete-cancel-btn"
+                onClick={() => setDeleteConfirm({ show: false, logId: null })}
+              >
+                Batal
+              </button>
+              <button 
+                className="delete-confirm-btn"
+                onClick={confirmDelete}
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>

@@ -43,6 +43,10 @@ service cloud.firestore {
       allow create: if request.auth != null && 
         request.resource.data.userId == request.auth.uid;
       
+      // Users can delete their own messages
+      allow delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
+      
       // Admin can read, update, and delete all messages
       allow read, update, delete: if request.auth != null && 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
@@ -74,10 +78,9 @@ service cloud.firestore {
       allow read, update, delete: if request.auth != null && 
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
       
-      // Users can mark as read
-      allow update: if request.auth != null && 
-        resource.data.userId == request.auth.uid &&
-        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['read']);
+      // Users can update (mark as read) and delete their own messages
+      allow update, delete: if request.auth != null && 
+        resource.data.userId == request.auth.uid;
     }
   }
 }

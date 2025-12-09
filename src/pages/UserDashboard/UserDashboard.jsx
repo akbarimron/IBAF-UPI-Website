@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs, onSnapshot, deleteDoc } from 'firebase/firestore';
 import { db, storage } from '../../config/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import WorkoutLog from '../../components/sections/WorkoutLog/WorkoutLog';
@@ -31,15 +31,90 @@ const UserDashboard = () => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [messageFilter, setMessageFilter] = useState('all'); // all, sent, received
+  
+  // Workout statistics state
+  const [weeklyStats, setWeeklyStats] = useState([]);
+  const [selectedWeek, setSelectedWeek] = useState(null);
+  const [showStatsModal, setShowStatsModal] = useState(false);
+  
+  // Notification count state
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [showNotificationModal, setShowNotificationModal] = useState(false);
+  const [announcements, setAnnouncements] = useState([]);
+  
+  // Confirmation dialog state
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
+  const [confirmMessage, setConfirmMessage] = useState('');
 
   // Show notification helper
   const showNotification = (message, type = 'info') => {
     setNotification({ message, type });
   };
 
+  // Get week category and color
+  const getWeekCategory = (weekNum) => {
+    if (weekNum === 0 || weekNum === 9) return { label: 'Post Test', color: '#4CAF50' }; // Hijau
+    if (weekNum >= 1 && weekNum <= 3) return { label: 'Hypertrophy', color: '#2196F3' }; // Biru
+    if (weekNum === 4 || weekNum === 8) return { label: 'Deload', color: '#FFC107' }; // Kuning
+    if (weekNum >= 5 && weekNum <= 7) return { label: 'Strength', color: '#F44336' }; // Merah
+    return { label: '', color: '#999' };
+  };
+
   useEffect(() => {
     if (currentUser) {
       fetchUserData();
+      
+      // Initialize weeks 0-9 (including post-test weeks)
+      const initialWeeks = [];
+      for (let i = 0; i <= 9; i++) {
+        initialWeeks.push({
+          week: i,
+          totalVolume: 0,
+          workoutDays: 0,
+          totalExercises: 0,
+          hasData: false,
+          ...getWeekCategory(i)
+        });
+      }
+      setWeeklyStats(initialWeeks);
+      
+      // Real-time listener for workout logs to update statistics
+      const workoutLogsRef = collection(db, 'workoutLogs');
+      const qWorkout = query(workoutLogsRef, where('userId', '==', currentUser.uid));
+      
+      const unsubscribeWorkout = onSnapshot(qWorkout, (snapshot) => {
+        const weekStats = {};
+        
+        // Initialize weeks 0-9 with default values
+        for (let i = 0; i <= 9; i++) {
+          weekStats[i] = {
+            week: i,
+            totalVolume: 0,
+            workoutDays: 0,
+            totalExercises: 0,
+            hasData: false,
+            ...getWeekCategory(i)
+          };
+        }
+        
+        // Fill in actual data from workout logs
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          const weekNum = data.weekNumber || data.week || 1;
+          
+          if (weekStats[weekNum]) {
+            weekStats[weekNum].totalVolume += data.totalVolume || 0;
+            weekStats[weekNum].workoutDays += 1;
+            weekStats[weekNum].totalExercises += data.exercises?.length || 0;
+            weekStats[weekNum].hasData = true;
+          }
+        });
+        
+        // Convert to array and sort by week
+        const statsArray = Object.values(weekStats).sort((a, b) => a.week - b.week);
+        setWeeklyStats(statsArray);
+      });
       
       // Real-time listener for messages (both user and admin messages)
       const qUserMessages = query(
@@ -66,13 +141,22 @@ const UserDashboard = () => {
             adminMsgs.push({ id: doc.id, type: 'admin', ...doc.data() });
           });
           
-          // Combine and sort all messages
+          // Combine and sort all messages - admin messages first, then by date
           const allMessages = [...userMsgs, ...adminMsgs];
           allMessages.sort((a, b) => {
+            // Admin messages first
+            if (a.type === 'admin' && b.type !== 'admin') return -1;
+            if (a.type !== 'admin' && b.type === 'admin') return 1;
+            
+            // Then sort by date (newest first)
             const dateA = new Date(a.createdAt);
             const dateB = new Date(b.createdAt);
             return dateB - dateA;
           });
+          
+          // Count unread admin messages
+          const unreadAdminMessages = adminMsgs.filter(msg => msg.status !== 'read').length;
+          setUnreadCount(unreadAdminMessages);
           
           setMessages(allMessages);
         });
@@ -81,8 +165,34 @@ const UserDashboard = () => {
         return () => unsubscribeAdminMessages();
       });
       
+      // Real-time listener for announcements
+      const qAnnouncements = query(
+        collection(db, 'announcements'),
+        where('isActive', '==', true)
+      );
+      
+      const unsubscribeAnnouncements = onSnapshot(qAnnouncements, (snapshot) => {
+        const announcementsList = [];
+        snapshot.forEach((doc) => {
+          announcementsList.push({ id: doc.id, ...doc.data() });
+        });
+        
+        // Sort by date (newest first)
+        announcementsList.sort((a, b) => {
+          const dateA = new Date(a.createdAt);
+          const dateB = new Date(b.createdAt);
+          return dateB - dateA;
+        });
+        
+        setAnnouncements(announcementsList);
+      });
+      
       // Cleanup
-      return () => unsubscribeUserMessages();
+      return () => {
+        unsubscribeWorkout();
+        unsubscribeUserMessages();
+        unsubscribeAnnouncements();
+      };
     }
   }, [currentUser]);
 
@@ -182,6 +292,36 @@ const UserDashboard = () => {
     }
   };
 
+  const handleDeleteMessage = async (messageId, messageType) => {
+    setConfirmMessage('Apakah Anda yakin ingin menghapus pesan ini?');
+    setConfirmAction(() => async () => {
+      try {
+        const collectionName = messageType === 'user' ? 'userMessages' : 'adminMessages';
+        await deleteDoc(doc(db, collectionName, messageId));
+        showNotification('Pesan berhasil dihapus', 'success');
+        setShowConfirmDialog(false);
+      } catch (error) {
+        console.error('Error deleting message:', error);
+        showNotification('Gagal menghapus pesan: ' + error.message, 'error');
+        setShowConfirmDialog(false);
+      }
+    });
+    setShowConfirmDialog(true);
+  };
+
+  const handleMarkAsRead = async (messageId) => {
+    try {
+      await updateDoc(doc(db, 'adminMessages', messageId), {
+        status: 'read',
+        readAt: new Date().toISOString()
+      });
+      showNotification('Pesan ditandai sudah dibaca', 'success');
+    } catch (error) {
+      console.error('Error marking message as read:', error);
+      showNotification('Gagal menandai pesan: ' + error.message, 'error');
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -205,23 +345,157 @@ const UserDashboard = () => {
       {/* Header */}
       <div className="dashboard-header">
         <div className="header-content">
+          <button className="hamburger-menu" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
           <div className="brand-section">
-            <button className="hamburger-menu" onClick={() => setSidebarOpen(!sidebarOpen)}>
-              <span></span>
-              <span></span>
-              <span></span>
-            </button>
-            <Link to="/" className="back-home-link">
+            <Link to="/" className="back-home-link desktop-only">
               ← Kembali ke Halaman Utama
             </Link>
           </div>
           <div className="header-actions">
-            <button onClick={handleLogout} className="logout-btn">
+            <button 
+              className="notification-btn" 
+              onClick={() => setShowNotificationModal(true)}
+            >
+              <span className="notification-icon">🔔</span>
+              {unreadCount > 0 && <span className="notification-badge">{unreadCount}</span>}
+            </button>
+            <button onClick={handleLogout} className="logout-btn desktop-only">
               Logout
             </button>
           </div>
         </div>
       </div>
+
+      {/* Notification Modal */}
+      {showNotificationModal && (
+        <div className="notification-modal-overlay" onClick={() => setShowNotificationModal(false)}>
+          <div className="notification-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="notification-modal-header">
+              <h3>🔔 Notifikasi</h3>
+              <button 
+                className="close-notification-btn"
+                onClick={() => setShowNotificationModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className="notification-modal-body">
+              {/* Announcements Section */}
+              {announcements.length > 0 && (
+                <div className="notification-section">
+                  <h4 className="notification-section-title">📢 Pengumuman</h4>
+                  {announcements.map((announcement) => (
+                    <div key={announcement.id} className="notification-item announcement-item">
+                      <div className="notification-item-header">
+                        <span className="notification-item-type">Pengumuman</span>
+                        <span className="notification-item-date">
+                          {new Date(announcement.createdAt).toLocaleDateString('id-ID', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
+                          })}
+                        </span>
+                      </div>
+                      <h5 className="notification-item-title">{announcement.title}</h5>
+                      <p className="notification-item-content">{announcement.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Admin Messages Section */}
+              {messages.filter(msg => msg.type === 'admin' && msg.status !== 'read').length > 0 && (
+                <div className="notification-section">
+                  <h4 className="notification-section-title">✉️ Pesan dari Admin</h4>
+                  {messages
+                    .filter(msg => msg.type === 'admin' && msg.status !== 'read')
+                    .slice(0, 5)
+                    .map((msg) => (
+                      <div 
+                        key={msg.id} 
+                        className="notification-item message-item"
+                        onClick={() => {
+                          handleMarkAsRead(msg.id);
+                          setShowNotificationModal(false);
+                          setActiveTab('messages');
+                          setSidebarOpen(false);
+                        }}
+                      >
+                        <div className="notification-item-header">
+                          <span className="notification-item-type">Pesan Baru</span>
+                          <span className="notification-item-date">
+                            {new Date(msg.createdAt).toLocaleDateString('id-ID', {
+                              day: '2-digit',
+                              month: 'short',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}
+                          </span>
+                        </div>
+                        <p className="notification-item-content">{msg.message}</p>
+                      </div>
+                    ))}
+                  {messages.filter(msg => msg.type === 'admin' && msg.status !== 'read').length > 5 && (
+                    <button 
+                      className="view-all-messages-btn"
+                      onClick={() => {
+                        setShowNotificationModal(false);
+                        setActiveTab('messages');
+                        setSidebarOpen(false);
+                      }}
+                    >
+                      Lihat Semua Pesan →
+                    </button>
+                  )}
+                </div>
+              )}
+
+              {/* Empty State */}
+              {announcements.length === 0 && messages.filter(msg => msg.type === 'admin' && msg.status !== 'read').length === 0 && (
+                <div className="notification-empty">
+                  <div className="empty-icon">🔕</div>
+                  <p>Tidak ada notifikasi baru</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Confirmation Dialog */}
+      {showConfirmDialog && (
+        <div className="confirm-dialog-overlay" onClick={() => setShowConfirmDialog(false)}>
+          <div className="confirm-dialog" onClick={(e) => e.stopPropagation()}>
+            <div className="confirm-dialog-header">
+              <span className="confirm-icon">⚠️</span>
+              <h3>Konfirmasi</h3>
+            </div>
+            <div className="confirm-dialog-body">
+              <p>{confirmMessage}</p>
+            </div>
+            <div className="confirm-dialog-actions">
+              <button 
+                className="confirm-btn-cancel"
+                onClick={() => setShowConfirmDialog(false)}
+              >
+                Batal
+              </button>
+              <button 
+                className="confirm-btn-confirm"
+                onClick={() => {
+                  if (confirmAction) confirmAction();
+                }}
+              >
+                Ya, Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       
@@ -327,6 +601,21 @@ const UserDashboard = () => {
               <span className="nav-icon">◉</span>
               Profile
             </button>
+            
+            <div className="nav-separator mobile-only"></div>
+            
+            <Link to="/" className="nav-item nav-link mobile-only">
+              <span className="nav-icon">←</span>
+              Kembali ke Halaman Utama
+            </Link>
+            
+            <button
+              className="nav-item nav-logout mobile-only"
+              onClick={handleLogout}
+            >
+              <span className="nav-icon">🚪</span>
+              Logout
+            </button>
           </nav>
           </div>
         </div>
@@ -364,6 +653,145 @@ const UserDashboard = () => {
                   </div>
                 </div>
               </div>
+
+              {/* Weekly Volume Statistics */}
+              {weeklyStats.length > 0 && (
+                <div className="weekly-stats-section">
+                  <h3>📊 Statistik Volume Program (10 Minggu)</h3>
+                  
+                  {/* Legend */}
+                  <div className="stats-legend">
+                    <div className="legend-item">
+                      <span className="legend-color" style={{backgroundColor: '#4CAF50'}}></span>
+                      <span>Post Test</span>
+                    </div>
+                    <div className="legend-item">
+                      <span className="legend-color" style={{backgroundColor: '#2196F3'}}></span>
+                      <span>Hypertrophy</span>
+                    </div>
+                    <div className="legend-item">
+                      <span className="legend-color" style={{backgroundColor: '#FFC107'}}></span>
+                      <span>Deload</span>
+                    </div>
+                    <div className="legend-item">
+                      <span className="legend-color" style={{backgroundColor: '#F44336'}}></span>
+                      <span>Strength</span>
+                    </div>
+                  </div>
+
+                  {/* Pre-Test vs Post-Test Comparison */}
+                  <div className="test-comparison">
+                    <h4 className="comparison-title">📊 Perbandingan Pre-Test & Post-Test</h4>
+                    <div className="comparison-grid">
+                      {weeklyStats.filter(stat => stat.week === 0 || stat.week === 9).map((stat) => (
+                        <div 
+                          key={stat.week} 
+                          className={`stat-card-simple ${!stat.hasData ? 'no-data' : ''}`}
+                          style={{
+                            borderLeft: `4px solid ${stat.color}`,
+                            borderTop: stat.hasData ? `2px solid ${stat.color}` : '2px solid #e0e0e0'
+                          }}
+                          onClick={() => {
+                            if (stat.hasData) {
+                              setSelectedWeek(stat);
+                              setShowStatsModal(true);
+                            }
+                          }}
+                        >
+                          <div className="stat-category" style={{color: stat.color}}>
+                            {stat.label}
+                          </div>
+                          <div className="stat-week">
+                            {stat.week === 0 ? 'Pre-Test' : 'Post-Test'}
+                          </div>
+                          <div className="stat-volume" style={{color: stat.hasData ? stat.color : '#999'}}>
+                            {stat.hasData ? `Volume: ${stat.totalVolume.toFixed(1)}` : '-'}
+                          </div>
+                          <div className="stat-hint">
+                            {stat.hasData ? 'Klik untuk detail' : 'Belum ada data'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Weekly Training Stats */}
+                  <div className="weekly-training">
+                    <h4 className="weekly-title">📈 Statistik Latihan Mingguan</h4>
+                    <div className="stats-grid">
+                      {weeklyStats.filter(stat => stat.week >= 1 && stat.week <= 8).map((stat) => (
+                        <div 
+                          key={stat.week} 
+                          className={`stat-card-simple ${!stat.hasData ? 'no-data' : ''}`}
+                          style={{
+                            borderLeft: `4px solid ${stat.color}`,
+                            borderTop: stat.hasData ? `2px solid ${stat.color}` : '2px solid #e0e0e0'
+                          }}
+                          onClick={() => {
+                            if (stat.hasData) {
+                              setSelectedWeek(stat);
+                              setShowStatsModal(true);
+                            }
+                          }}
+                        >
+                          <div className="stat-category" style={{color: stat.color}}>
+                            {stat.label}
+                          </div>
+                          <div className="stat-week">
+                            Minggu {stat.week}
+                          </div>
+                          <div className="stat-volume" style={{color: stat.hasData ? stat.color : '#999'}}>
+                            {stat.hasData ? `Volume: ${stat.totalVolume.toFixed(1)}` : '-'}
+                          </div>
+                          <div className="stat-hint">
+                            {stat.hasData ? 'Klik untuk detail' : 'Belum ada data'}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Stats Detail Modal */}
+              {showStatsModal && selectedWeek && (
+                <div className="stats-modal-overlay" onClick={() => setShowStatsModal(false)}>
+                  <div className="stats-modal" onClick={(e) => e.stopPropagation()}>
+                    <div className="stats-modal-header">
+                      <h3>Detail Minggu {selectedWeek.week}</h3>
+                      <button 
+                        className="close-modal-btn"
+                        onClick={() => setShowStatsModal(false)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="stats-modal-body">
+                      <div className="stat-detail-item" style={{ borderLeft: `4px solid ${selectedWeek.color}` }}>
+                        <span className="stat-detail-label">💪 Total Volume</span>
+                        <span className="stat-detail-value">{selectedWeek.totalVolume.toFixed(1)}</span>
+                      </div>
+                      <div className="stat-detail-item" style={{ borderLeft: `4px solid ${selectedWeek.color}` }}>
+                        <span className="stat-detail-label">📅 Hari Latihan</span>
+                        <span className="stat-detail-value">{selectedWeek.workoutDays} hari</span>
+                      </div>
+                      <div className="stat-detail-item" style={{ borderLeft: `4px solid ${selectedWeek.color}` }}>
+                        <span className="stat-detail-label">🏋️ Total Exercises</span>
+                        <span className="stat-detail-value">{selectedWeek.totalExercises} exercise</span>
+                      </div>
+                      <div className="stat-detail-item">
+                        <span className="stat-detail-label">📊 Rata-rata Volume/Hari</span>
+                        <span className="stat-detail-value">
+                          {selectedWeek.workoutDays > 0 
+                            ? `${(selectedWeek.totalVolume / selectedWeek.workoutDays).toFixed(1)}`
+                            : '0'
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="welcome-message">
                 <h3>Selamat datang, {userData?.fullName || userData?.name || 'Member'}!</h3>
@@ -459,15 +887,39 @@ const UserDashboard = () => {
                               minute: '2-digit' 
                             })}
                           </span>
+                          {msg.type === 'admin' && msg.status !== 'read' && (
+                            <span className="unread-badge">Baru</span>
+                          )}
+                          {msg.type === 'user' && (
+                            <span className={`message-status ${msg.status}`}>
+                              {msg.status === 'pending' ? '⏳ Menunggu' : msg.status === 'read' ? '✓ Dibaca' : '✓✓ Dibalas'}
+                            </span>
+                          )}
                         </div>
-                        {msg.type === 'admin' && msg.status !== 'read' && (
-                          <span className="unread-badge">Baru</span>
-                        )}
-                        {msg.type === 'user' && (
-                          <span className={`message-status ${msg.status}`}>
-                            {msg.status === 'pending' ? '⏳ Menunggu' : msg.status === 'read' ? '✓ Dibaca' : '✓✓ Dibalas'}
+                        <div className="message-actions">
+                          {msg.type === 'admin' && msg.status !== 'read' && (
+                            <span 
+                              className="action-icon mark-read-icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMarkAsRead(msg.id);
+                              }}
+                              title="Tandai sudah dibaca"
+                            >
+                              ✓
+                            </span>
+                          )}
+                          <span 
+                            className="action-icon delete-icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteMessage(msg.id, msg.type);
+                            }}
+                            title="Hapus pesan"
+                          >
+                            🗑️
                           </span>
-                        )}
+                        </div>
                       </div>
                       <p className="message-text">{msg.message}</p>
                       {msg.reply && (

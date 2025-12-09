@@ -35,16 +35,26 @@
 .hamburger-menu {
   display: none;
   flex-direction: column;
-  gap: 4px;
+  gap: 5px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 8px;
+  padding: 6px;
   z-index: 1001;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  transition: background 0.3s ease;
+}
+
+.hamburger-menu:hover {
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .hamburger-menu span {
-  width: 25px;
+  width: 24px;
   height: 3px;
   background: #fff;
   border-radius: 2px;
@@ -1530,6 +1540,15 @@
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
     position: relative;
+    padding: 0;
+  }
+
+  .dashboard-content {
+    padding: 20px;
+  }
+
+  .dashboard-content h2 {
+    font-size: 22px;
   }
 
   .dashboard-sidebar {
@@ -1537,7 +1556,7 @@
     left: -100%;
     top: 0;
     height: 100vh;
-    width: 320px;
+    width: 280px;
     background: white;
     z-index: 1000;
     transition: left 0.3s ease;
@@ -1570,6 +1589,15 @@
     margin-left: -1rem;
     padding-left: calc(1rem - 3px);
   }
+
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 15px;
+  }
+
+  .stat-card {
+    padding: 1.25rem;
+  }
 }
 
 @media (max-width: 768px) {
@@ -1582,19 +1610,26 @@
   }
 
   .admin-badge {
-    padding: 0.3rem 0.75rem;
-    font-size: 0.7rem;
+    display: none;
   }
 
   .logout-btn {
-    padding: 0.4rem 1rem;
+    padding: 0.5rem 1rem;
     font-size: 0.8rem;
   }
 
   .dashboard-container {
     grid-template-columns: 1fr;
-    padding: 0;
     position: relative;
+    padding: 0;
+  }
+
+  .dashboard-content {
+    padding: 15px;
+  }
+
+  .dashboard-content h2 {
+    font-size: 20px;
   }
 
   .dashboard-sidebar {
@@ -1603,6 +1638,7 @@
     top: 0;
     height: 100vh;
     width: 280px;
+    max-width: 85vw;
     background: white;
     z-index: 1000;
     transition: left 0.3s ease;
@@ -1613,6 +1649,47 @@
 
   .dashboard-sidebar.sidebar-open {
     left: 0;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 1rem;
+  }
+
+  .stat-icon {
+    font-size: 2rem;
+  }
+
+  .stat-value {
+    font-size: 1.75rem;
+  }
+
+  .user-filter-tabs {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .filter-tab {
+    width: 100%;
+  }
+
+  .users-table-container {
+    overflow-x: auto;
+  }
+
+  .users-table {
+    min-width: 800px;
+    font-size: 12px;
+  }
+
+  .users-table th,
+  .users-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 11px;
   }
 
   .admin-info-card {
