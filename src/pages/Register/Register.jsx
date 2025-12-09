@@ -60,8 +60,8 @@ const Register = () => {
 
       // Send email verification
       const actionCodeSettings = {
-        url: `${window.location.origin}/login?verified=true`,
-        handleCodeInApp: false,
+        url: window.location.origin + '/login',
+        handleCodeInApp: false
       };
       
       await sendEmailVerification(userCredential.user, actionCodeSettings);

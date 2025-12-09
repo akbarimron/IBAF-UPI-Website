@@ -235,8 +235,13 @@ const Login = () => {
         return;
       }
       
-      // Send verification email
-      await sendEmailVerification(userCredential.user);
+      // Send verification email with action code settings
+      const actionCodeSettings = {
+        url: window.location.origin + '/login',
+        handleCodeInApp: false
+      };
+      
+      await sendEmailVerification(userCredential.user, actionCodeSettings);
       await auth.signOut();
       
       setSuccessMessage('Email verifikasi telah dikirim ulang. Silakan cek inbox Anda.');
