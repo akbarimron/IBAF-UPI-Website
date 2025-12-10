@@ -112,19 +112,14 @@ const UserVerification = ({ userData, onUpdate, showNotification }) => {
 
           <div className="form-group">
             <label>Program Studi <span className="required">*</span></label>
-            <select
+            <input
+              type="text"
               name="prodi"
               value={formData.prodi}
               onChange={handleChange}
+              placeholder="Tulis nama program studi Anda"
               required
-            >
-              <option value="">Pilih Program Studi</option>
-              <option value="Pendidikan Jasmani Kesehatan dan Rekreasi">Pendidikan Jasmani Kesehatan dan Rekreasi</option>
-              <option value="Pendidikan Kepelatihan Olahraga">Pendidikan Kepelatihan Olahraga</option>
-              <option value="Ilmu Keolahragaan">Ilmu Keolahragaan</option>
-              <option value="PGSD Penjas">PGSD Penjas</option>
-              <option value="Lainnya">Lainnya</option>
-            </select>
+            />
           </div>
 
           <div className="form-row">

@@ -14,7 +14,7 @@ import {
   getDoc
 } from 'firebase/firestore';
 import { db } from '../../config/firebase';
-import { FaUser, FaUserNinja, FaUserAstronaut, FaUserTie, FaUserGraduate, FaRobot, FaDumbbell, FaCat, FaDog, FaDragon, FaFrog, FaHorse, FaOtter, FaKiwiBird, FaFish, FaTrashAlt, FaCheckCircle, FaTimesCircle, FaPaperPlane, FaBan, FaExclamationTriangle, FaUserCheck, FaUserTimes } from 'react-icons/fa';
+import { FaUser, FaUserNinja, FaUserAstronaut, FaUserTie, FaUserGraduate, FaRobot, FaDumbbell, FaCat, FaDog, FaDragon, FaFrog, FaHorse, FaOtter, FaKiwiBird, FaFish, FaTrashAlt, FaCheckCircle, FaTimesCircle, FaPaperPlane, FaBan, FaExclamationTriangle, FaUserCheck, FaUserTimes, FaFileExport } from 'react-icons/fa';
 import './AdminDashboard.css';
 
 const AdminDashboard = () => {
@@ -59,7 +59,7 @@ const AdminDashboard = () => {
   // Confirmation modal state
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmModalData, setConfirmModalData] = useState({
-    type: '', // 'delete', 'approve', 'reject', 'ban', 'message'
+    type: '', // 'delete', 'approve', 'reject', 'ban', 'message', 'deactive'
     title: '',
     message: '',
     icon: null,
@@ -343,24 +343,48 @@ const AdminDashboard = () => {
     filterWorkoutLogs(selectedWeekFilter, day);
   };
 
+  
+
   const handleToggleUserStatus = async (userId, currentStatus) => {
-    if (!window.confirm('Ubah status akun user ini?')) return;
-
-    try {
-      const newStatus = !currentStatus;
-      await updateDoc(doc(db, 'users', userId), {
-        isActive: newStatus,
-        updatedAt: new Date().toISOString()
-      });
-      
-      fetchUsers();
-      alert(`User ${newStatus ? 'diaktifkan' : 'dinonaktifkan'}`);
-    } catch (error) {
-      console.error('Error updating user status:', error);
-      alert('Gagal mengubah status user');
-    }
+    // Ganti alert dengan confirm modal
+    showConfirmation({
+      type: currentStatus ? 'deactivate' : 'activate',
+      title: currentStatus ? 'Nonaktifkan User' : 'Aktifkan User',
+      message: currentStatus
+        ? 'Yakin ingin menonaktifkan user ini? User tidak dapat login.'
+        : 'Yakin ingin mengaktifkan user ini? User dapat login kembali.',
+      icon: currentStatus ? <FaExclamationTriangle /> : <FaCheckCircle />,
+      confirmText: currentStatus ? 'Nonaktifkan' : 'Aktifkan',
+      cancelText: 'Batal',
+      onConfirm: async () => {
+        try {
+          const newStatus = !currentStatus;
+          await updateDoc(doc(db, 'users', userId), {
+            isActive: newStatus,
+            updatedAt: new Date().toISOString()
+          });
+          fetchUsers();
+          showNotif(`User ${newStatus ? 'diaktifkan' : 'dinonaktifkan'}`, 'success');
+        } catch (error) {
+          console.error('Error updating user status:', error);
+          showNotif('Gagal mengubah status user', 'error');
+        }
+      }
+    });
   };
-
+const handleShowDeactivateConfirm = (userId) => {
+  setConfirmModalData({
+    title: 'Nonaktifkan User',
+    message: 'Yakin ingin menonaktifkan user ini? User tidak dapat login.',
+    confirmText: 'Nonaktifkan',
+    cancelText: 'Batal',
+    type: 'warning',
+    icon: <FaExclamationTriangle />,
+    requireInput: false,
+    onConfirm: () => handleToggleUserStatus(userId, false),
+  });
+  setShowConfirmModal(true);
+};
   const handleBanUser = async (userId) => {
     showConfirmation({
       type: 'ban',
@@ -444,24 +468,25 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleDeleteMessage = async (messageId) => {
-    showConfirmation({
-      type: 'delete',
-      title: 'Hapus Pesan',
-      message: 'Apakah Anda yakin ingin menghapus pesan ini? Tindakan ini tidak dapat dibatalkan.',
-      icon: <FaTrashAlt />,
-      confirmText: 'Hapus',
-      onConfirm: async () => {
-        try {
-          await deleteDoc(doc(db, 'userMessages', messageId));
-          showNotif('✅ Pesan berhasil dihapus', 'success');
-        } catch (error) {
-          console.error('Error deleting message:', error);
-          showNotif('❌ Gagal menghapus pesan', 'error');
-        }
+  const handleDeleteMessage = async (messageId, messageType) => {
+  showConfirmation({
+    type: 'delete',
+    title: 'Hapus Pesan',
+    message: 'Apakah Anda yakin ingin menghapus pesan ini? Tindakan ini tidak dapat dibatalkan.',
+    icon: <FaTrashAlt />,
+    confirmText: 'Hapus',
+    onConfirm: async () => {
+      try {
+        const collectionName = messageType === 'admin' ? 'adminMessages' : 'userMessages';
+        await deleteDoc(doc(db, collectionName, messageId));
+        showNotif('✅ Pesan berhasil dihapus', 'success');
+      } catch (error) {
+        console.error('Error deleting message:', error);
+        showNotif('❌ Gagal menghapus pesan', 'error');
       }
-    });
-  };
+    }
+  });
+};
 
   const handleViewUserMessages = (inbox) => {
     setSelectedUserForMessages(inbox);
@@ -484,12 +509,88 @@ const AdminDashboard = () => {
     }, 3000);
   };
 
+  // Helper for week label and days (used by export)
+  const days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+  const getWeekLabel = (weekNum) => {
+    if (weekNum === 0) return 'Pre-Test';
+    if (weekNum === 9) return 'Post-Test';
+    return `Minggu ${weekNum}`;
+  };
+
+  // Export workout log for selected user (admin action)
+  const exportWorkoutLogForUser = async (user) => {
+    try {
+      const logsQuery = query(
+        collection(db, 'workoutLogs'),
+        where('userId', '==', user.id)
+      );
+      const querySnapshot = await getDocs(logsQuery);
+      const allLogs = [];
+      querySnapshot.forEach((docSnap) => {
+        allLogs.push({ id: docSnap.id, ...docSnap.data() });
+      });
+
+      if (allLogs.length === 0) {
+        showNotif('Tidak ada data workout untuk user ini', 'warning');
+        return;
+      }
+
+      // Sort by week and day
+      allLogs.sort((a, b) => {
+        if (a.week !== b.week) return a.week - b.week;
+        return a.day - b.day;
+      });
+
+      // Create CSV content
+      let csvContent = '\uFEFF'; // UTF-8 BOM for Excel compatibility
+      csvContent += 'Minggu,Hari,Tanggal,Latihan,Set,Berat (kg),Reps,Volume (kg)\n';
+
+      allLogs.forEach(log => {
+        const weekLabel = getWeekLabel(log.week);
+        const dayName = days[(log.day || 1) - 1] || '-';
+        let date = '-';
+        if (log.workoutDate && typeof log.workoutDate === 'string') {
+          const parts = log.workoutDate.split('-');
+          if (parts.length === 3) {
+            const [year, month, day] = parts;
+            date = `${day}/${month}/${year}`;
+          }
+        }
+        (log.exercises || []).forEach(exercise => {
+          (exercise.sets || []).forEach((set, index) => {
+            const weight = parseFloat(set.weight) || 0;
+            const reps = parseInt(set.reps) || 0;
+            const volume = weight * reps;
+            csvContent += `"${weekLabel}","${dayName}","${date}","${exercise.name}",${index + 1},${weight},${reps},${volume}\n`;
+          });
+        });
+      });
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const link = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      const userName = user.name || user.fullName || (user.email ? user.email.split('@')[0] : 'user');
+      const timestamp = new Date().toISOString().split('T')[0];
+      link.setAttribute('href', url);
+      link.setAttribute('download', `Workout_Log_${userName}_${timestamp}.csv`);
+      link.style.visibility = 'hidden';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      showNotif('Workout log user berhasil diexport!', 'success');
+    } catch (error) {
+      console.error('Error exporting workout log:', error);
+      showNotif('Gagal mengexport workout log user', 'error');
+    }
+  };
+
   // Show confirmation modal with custom config
   const showConfirmation = (config) => {
     setConfirmModalData({
       type: config.type || '',
-      title: config.title || 'Konfirmasi',
-      message: config.message || 'Apakah Anda yakin?',
+      title: config.title || 'Nonaktifkan akun',
+      message: config.message || 'Apakah Anda yakin ingin menonaktifkan akun ini? user tidak dapat melakukan interaksi apapun.',
       icon: config.icon || <FaExclamationTriangle />,
       confirmText: config.confirmText || 'Konfirmasi',
       cancelText: config.cancelText || 'Batal',
@@ -1123,13 +1224,13 @@ const AdminDashboard = () => {
                             {user.role !== 'admin' && (
                               <>
                                 <button
-                                  onClick={() => handleToggleUserStatus(user.id, user.isActive !== false)}
-                                  className={user.isActive !== false ? 'btn-deactivate' : 'btn-activate'}
-                                  title={user.isActive !== false ? 'Nonaktifkan user - User tidak dapat login' : 'Aktifkan user - User dapat login kembali'}
-                                >
-                                  <span className="btn-icon">{user.isActive !== false ? '⏸' : '▶'}</span>
-                                  <span className="btn-text">{user.isActive !== false ? 'Nonaktifkan' : 'Aktifkan'}</span>
-                                </button>
+                                    onClick={() => handleToggleUserStatus(user.id, user.isActive !== false)}
+                                    className={user.isActive !== false ? 'btn-deactivate' : 'btn-activate'}
+                                    title={user.isActive !== false ? 'Nonaktifkan user - User tidak dapat login' : 'Aktifkan user - User dapat login kembali'}
+                                  >
+                                    <span className="btn-icon">{user.isActive !== false ? '⏸' : '▶'}</span>
+                                    <span className="btn-text">{user.isActive !== false ? 'Nonaktifkan' : 'Aktifkan'}</span>
+                                  </button>
                                 {user.isBanned ? (
                                   <button
                                     onClick={() => handleUnbanUser(user.id)}
@@ -1253,11 +1354,14 @@ const AdminDashboard = () => {
                   </div>
                   
                   <div className="messages-thread">
-                    {userMessages.filter(msg => {
-                      if (messageFilter === 'received') return msg.type === 'user';
-                      if (messageFilter === 'sent') return msg.type === 'admin';
-                      return true;
-                    }).map((msg) => (
+                    {[...userMessages]
+                      .filter(msg => {
+                        if (messageFilter === 'received') return msg.type === 'user';
+                        if (messageFilter === 'sent') return msg.type === 'admin';
+                        return true;
+                      })
+                      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+                      .map((msg) => (
                       <div key={msg.id} className={`message-card ${msg.type === 'admin' ? 'admin-message' : msg.status}`}>
                         <div className="message-header">
                           <div className="message-meta">
@@ -1269,6 +1373,14 @@ const AdminDashboard = () => {
                                 <span className="message-date">
                                   {new Date(msg.createdAt).toLocaleString('id-ID')}
                                 </span>
+                                {/* Deactivate button for admin-sent message */}
+                                <button
+                                  className="btn-deactivate-message"
+                                  title="Nonaktifkan user ini dari pesan admin"
+                                  onClick={() => handleToggleUserStatus(msg.userId, true)}
+                                >
+                                  Nonaktifkan User
+                                </button>
                               </>
                             ) : (
                               <>
@@ -1287,6 +1399,11 @@ const AdminDashboard = () => {
                         <div className="message-content">
                           <p>{msg.message}</p>
                         </div>
+                        {msg.type === 'admin' && (
+                          <button onClick={() => handleDeleteMessage(msg.id, msg.type)} className="btn-delete">
+                            Hapus
+                          </button>
+                        )}
 
                         {msg.type === 'user' && msg.reply && (
                           <div className="admin-reply-display">
@@ -1297,9 +1414,13 @@ const AdminDashboard = () => {
                             </span>
                           </div>
                         )}
-
+                        <div className="message-actions">
+                        </div>
                         {msg.type === 'user' && (
                           <div className="message-actions">
+                            {msg.status === 'read' && (
+                              <span className="info-text">Pesan sudah dibaca</span>
+                            )}
                             {msg.status === 'pending' && (
                               <button
                                 onClick={() => handleMarkAsRead(msg.id)}
@@ -1324,10 +1445,7 @@ const AdminDashboard = () => {
                                 </button>
                               </div>
                             )}
-                            <button
-                              onClick={() => handleDeleteMessage(msg.id)}
-                              className="btn-delete"
-                            >
+                            <button onClick={() => handleDeleteMessage(msg.id, msg.type)} className="btn-delete">
                               Hapus
                             </button>
                           </div>
@@ -1406,7 +1524,19 @@ const AdminDashboard = () => {
                       <FaPaperPlane className="btn-icon" />
                       Kirim Pesan
                     </button>
-                    
+                    {/* Export Workout Log Button for Admin */}
+                    {selectedUser.role !== 'admin' && (
+                      <button
+                        type="button"
+                        className="btn-export-workout"
+                        onClick={() => exportWorkoutLogForUser(selectedUser)}
+                        title="Export Workout Log User ke Spreadsheet"
+                        tabIndex={0}
+                      >
+                        <FaFileExport className="btn-icon" />
+                        Export Workout
+                      </button>
+                    )}
                     {selectedUser.verificationStatus === 'pending' && selectedUser.role !== 'admin' && (
                       <>
                         <button
@@ -1425,9 +1555,26 @@ const AdminDashboard = () => {
                         </button>
                       </>
                     )}
-                    
                     {selectedUser.role !== 'admin' && (
                       <>
+                        {/* Always show Deactivate/Activate Button for non-admin users */}
+                        <button
+                          onClick={() => handleToggleUserStatus(selectedUser.id, selectedUser.isActive !== false)}
+                          className={selectedUser.isActive !== false ? 'btn-deactivate-detail custom-action-btn' : 'btn-activate-detail custom-action-btn'}
+                        >
+                          {selectedUser.isActive !== false ? (
+                            <>
+                              <FaTimesCircle className="btn-icon" />
+                              Nonaktifkan
+                            </>
+                          ) : (
+                            <>
+                              <FaCheckCircle className="btn-icon" />
+                              Aktifkan
+                            </>
+                          )}
+                        </button>
+                        {/* Ban/Unban Button */}
                         {selectedUser.isBanned ? (
                           <button
                             onClick={() => handleUnbanUser(selectedUser.id)}
@@ -1445,7 +1592,7 @@ const AdminDashboard = () => {
                             Ban
                           </button>
                         )}
-                        
+                        {/* Delete Button */}
                         <button
                           onClick={() => handleDeleteUser(selectedUser.id, selectedUser.name || selectedUser.fullName || selectedUser.email)}
                           className="btn-delete-detail"
@@ -1580,6 +1727,7 @@ const AdminDashboard = () => {
                   <h3>Workout Logs</h3>
                   
                   {selectedUserLogs.length > 0 && (
+                    
                     <div className="workout-filters">
                       <div className="filter-group">
                         <label>Minggu:</label>
