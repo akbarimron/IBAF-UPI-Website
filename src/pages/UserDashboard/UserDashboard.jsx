@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
-import { doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs, onSnapshot, deleteDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, collection, addDoc, query, where, getDocs, onSnapshot, deleteDoc, serverTimestamp } from 'firebase/firestore';
 import { db, storage, auth } from '../../config/firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { updateEmail, EmailAuthProvider, reauthenticateWithCredential, sendEmailVerification } from 'firebase/auth';
@@ -86,11 +86,37 @@ const UserDashboard = () => {
   
   // Ref to track previous user status to avoid duplicate notifications
   const prevStatusRef = useRef({ isBanned: null, isActive: null, verificationStatus: null });
+  // Refs to track previously seen message ids to avoid duplicate toasts
+  const prevAdminMsgIdsRef = useRef(new Set());
+  const prevRepliedUserMsgIdsRef = useRef(new Set());
 
   // Show notification helper
   const showNotification = useCallback((message, type = 'info') => {
+    console.log('UserDashboard: showNotification called', { message, type });
     setNotification({ message, type });
   }, []);
+
+  // Robust check whether a message should be considered read
+  const isMessageRead = useCallback((m) => {
+    if (!m) return false;
+    try {
+      // If admin message was marked read locally (fallback), honor it
+      if (m.type === 'admin') {
+        const key = `readAdminIds_${currentUser?.uid}`;
+        const raw = localStorage.getItem(key);
+        const arr = raw ? JSON.parse(raw) : [];
+        if (arr.includes(m.id)) return true;
+      }
+    } catch (e) {
+      console.error('Error checking local read flags', e);
+    }
+
+    if (m.status === 'read') return true;
+    if (m.read === true) return true;
+    if (m.isRead === true) return true;
+    if (m.readAt) return true;
+    return false;
+  }, [currentUser?.uid]);
 
   // Get week category and color
   const getWeekCategory = (weekNum) => {
@@ -267,53 +293,110 @@ const UserDashboard = () => {
       });
       
       // Real-time listener for messages (both user and admin messages)
-      const qUserMessages = query(
-        collection(db, 'userMessages'),
-        where('userId', '==', currentUser.uid)
-      );
-      
-      const qAdminMessages = query(
-        collection(db, 'adminMessages'),
-        where('userId', '==', currentUser.uid)
-      );
-      
-      // Listen to user messages
-      const unsubscribeUserMessages = onSnapshot(qUserMessages, (snapshot) => {
-        const userMsgs = [];
-        snapshot.forEach((doc) => {
-          userMsgs.push({ id: doc.id, type: 'user', ...doc.data() });
-        });
-        
-        // Listen to admin messages
-        const unsubscribeAdminMessages = onSnapshot(qAdminMessages, (snapshot) => {
-          const adminMsgs = [];
-          snapshot.forEach((doc) => {
-            adminMsgs.push({ id: doc.id, type: 'admin', ...doc.data() });
+          const qUserMessages = query(collection(db, 'userMessages'), where('userId', '==', currentUser.uid));
+          const qAdminMessages = query(collection(db, 'adminMessages'), where('userId', '==', currentUser.uid));
+
+          // Keep latest snapshots in local arrays then combine
+          const unsubscribeUserMessages = onSnapshot(qUserMessages, (snapshot) => {
+            const userMsgs = [];
+            snapshot.forEach((doc) => {
+              userMsgs.push({ id: doc.id, type: 'user', ...doc.data() });
+            });
+
+            try {
+              processCombinedMessages(userMsgs, null);
+            } catch (e) {
+              console.error('Error processing user messages snapshot', e);
+            }
+          }, (err) => {
+            console.error('User messages listener error', err);
+            if (err.code === 'permission-denied') {
+              showNotification('Akses notifikasi diblokir oleh aturan keamanan. Hubungi admin.', 'error');
+            } else {
+              showNotification('Gagal memuat pesan: ' + (err.message || err), 'error');
+            }
           });
-          
-          // Combine and sort all messages - admin messages first, then by date
-          const allMessages = [...userMsgs, ...adminMsgs];
-          allMessages.sort((a, b) => {
-            // Admin messages first
-            if (a.type === 'admin' && b.type !== 'admin') return -1;
-            if (a.type !== 'admin' && b.type === 'admin') return 1;
-            
-            // Then sort by date (newest first)
-            const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt);
-            const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt);
-            return dateB - dateA;
+
+          const unsubscribeAdminMessages = onSnapshot(qAdminMessages, (snapshot) => {
+            const adminMsgs = [];
+            snapshot.forEach((doc) => {
+              adminMsgs.push({ id: doc.id, type: 'admin', ...doc.data() });
+            });
+
+            try {
+              processCombinedMessages(null, adminMsgs);
+            } catch (e) {
+              console.error('Error processing admin messages snapshot', e);
+            }
+          }, (err) => {
+            console.error('Admin messages listener error', err);
+            if (err.code === 'permission-denied') {
+              showNotification('Akses notifikasi admin diblokir oleh aturan keamanan. Hubungi admin.', 'error');
+            } else {
+              showNotification('Gagal memuat notifikasi admin: ' + (err.message || err), 'error');
+            }
           });
-          
-          // Count unread admin messages
-          const unreadAdminMessages = adminMsgs.filter(msg => msg.status !== 'read').length;
-          setUnreadCount(unreadAdminMessages);
-          
-          setMessages(allMessages);
-        });
-        
-        // Cleanup admin messages listener
-        return () => unsubscribeAdminMessages();
-      });
+
+          // Helper to merge latest snapshots from both collections. We call it with whichever changed.
+          let latestUserMsgs = [];
+          let latestAdminMsgs = [];
+          const processCombinedMessages = (usr, adm) => {
+            if (Array.isArray(usr)) latestUserMsgs = usr;
+            if (Array.isArray(adm)) latestAdminMsgs = adm;
+
+            const userMsgs = latestUserMsgs.slice();
+            const adminMsgs = latestAdminMsgs.slice();
+
+            // Combine and sort all messages - admin messages first, then by date (newest first)
+            const allMessages = [...userMsgs, ...adminMsgs];
+            allMessages.sort((a, b) => {
+              if (a.type === 'admin' && b.type !== 'admin') return -1;
+              if (a.type !== 'admin' && b.type === 'admin') return 1;
+              const dateA = a.createdAt?.toDate ? a.createdAt.toDate() : new Date(a.createdAt || a.sentAt || a.createdAt);
+              const dateB = b.createdAt?.toDate ? b.createdAt.toDate() : new Date(b.createdAt || b.sentAt || b.createdAt);
+              return dateB - dateA;
+            });
+
+            // Count unread admin messages and replies
+            const unreadFromAdminCollection = adminMsgs.filter(msg => !isMessageRead(msg)).length;
+            const unreadRepliesInUserMsgs = userMsgs.filter(msg => msg.status === 'replied' && !isMessageRead(msg)).length;
+            const unreadAdminMessages = unreadFromAdminCollection + unreadRepliesInUserMsgs;
+            setUnreadCount(unreadAdminMessages);
+
+            // Show toast for newly arrived admin messages or replies (but not on initial load)
+            try {
+              const currentAdminIds = new Set(adminMsgs.map(m => m.id));
+              const currentRepliedUserIds = new Set(userMsgs.filter(m => m.status === 'replied' && m.reply).map(m => m.id));
+
+              const prevAdminIds = prevAdminMsgIdsRef.current || new Set();
+              const prevRepliedIds = prevRepliedUserMsgIdsRef.current || new Set();
+
+              const isInitialLoad = prevAdminIds.size === 0 && prevRepliedIds.size === 0;
+
+              if (!isInitialLoad) {
+                adminMsgs.forEach((m) => {
+                  if (!prevAdminIds.has(m.id) && !isMessageRead(m)) {
+                    console.log('UserDashboard: New admin message detected', { id: m.id, message: m.message || m.content, status: m.status });
+                    showNotification(m.message || 'Pesan baru dari admin', 'info');
+                  }
+                });
+
+                userMsgs.forEach((m) => {
+                  if (m.status === 'replied' && m.reply && !prevRepliedIds.has(m.id)) {
+                    console.log('UserDashboard: New reply to user message detected', { id: m.id, reply: m.reply });
+                    showNotification(m.reply || 'Balasan dari admin', 'info');
+                  }
+                });
+              }
+
+              prevAdminMsgIdsRef.current = currentAdminIds;
+              prevRepliedUserMsgIdsRef.current = currentRepliedUserIds;
+            } catch (err) {
+              console.error('Error handling new message notifications:', err);
+            }
+
+            setMessages(allMessages);
+          };
       
       // Real-time listener for announcements
       const qAnnouncements = query(
@@ -346,6 +429,21 @@ const UserDashboard = () => {
       };
     }
   }, [currentUser]);
+
+  // Debug: log messages and unreadCount changes
+  useEffect(() => {
+    try {
+      console.log('UserDashboard: messages state changed, count=', messages.length);
+      const adminUnread = messages.filter(m => m.type === 'admin' && !isMessageRead(m));
+      console.log('UserDashboard: adminUnread items=', adminUnread.length, adminUnread.map(m => ({ id: m.id, message: m.message || m.content, status: m.status, read: m.read })));
+    } catch (e) {
+      console.error('Error logging messages state', e);
+    }
+  }, [messages, isMessageRead]);
+
+  useEffect(() => {
+    console.log('UserDashboard: unreadCount updated', unreadCount);
+  }, [unreadCount]);
 
   const fetchUserData = async () => {
     try {
@@ -663,16 +761,48 @@ const UserDashboard = () => {
     }
   };
 
-  const handleMarkAsRead = async (messageId) => {
+  // Mark a message as read. `type` is 'admin' or 'user'. If server update fails for admin messages, persist locally.
+  const handleMarkAsRead = async (messageId, type = 'admin') => {
+    // Build optimistic messages array
+    const newMessages = messages.map(m => m.id === messageId ? { ...m, status: 'read', readAt: new Date().toISOString() } : m);
+    // Apply optimistic update
+    setMessages(newMessages);
+
     try {
-      await updateDoc(doc(db, 'adminMessages', messageId), {
-        status: 'read',
-        readAt: new Date().toISOString()
-      });
+      const payload = { status: 'read', readAt: serverTimestamp() };
+      console.log('UserDashboard: marking as read, payload=', payload, 'type=', type, 'id=', messageId);
+      if (type === 'admin') {
+        await updateDoc(doc(db, 'adminMessages', messageId), payload);
+      } else {
+        await updateDoc(doc(db, 'userMessages', messageId), payload);
+      }
       showNotification('Pesan ditandai sudah dibaca', 'success');
     } catch (error) {
-      console.error('Error marking message as read:', error);
-      showNotification('Gagal menandai pesan: ' + error.message, 'error');
+      console.error('Error marking message as read (server):', error);
+      // If permission denied for adminMessages, persist local read flag so notification won't reappear locally
+      if (type === 'admin') {
+        try {
+          const key = `readAdminIds_${currentUser?.uid}`;
+          const raw = localStorage.getItem(key);
+          const arr = raw ? JSON.parse(raw) : [];
+          if (!arr.includes(messageId)) {
+            arr.push(messageId);
+            localStorage.setItem(key, JSON.stringify(arr));
+          }
+        } catch (e) {
+          console.error('Failed to persist local read flag', e);
+        }
+      }
+      showNotification('Pesan ditandai sudah dibaca (lokal)', 'info');
+    } finally {
+      // Recompute unread count from current messages and local read flags
+      try {
+        const adminUnread = newMessages.filter(m => m.type === 'admin' && !isMessageRead(m)).length;
+        const repliedUnread = newMessages.filter(m => m.type === 'user' && m.status === 'replied' && !isMessageRead(m)).length;
+        setUnreadCount(adminUnread + repliedUnread);
+      } catch (e) {
+        console.error('Failed to recompute unread count', e);
+      }
     }
   };
 
@@ -761,52 +891,59 @@ const UserDashboard = () => {
                 </div>
               )}
 
-              {/* Admin Messages Section */}
-              {messages.filter(msg => msg.type === 'admin' && msg.status !== 'read').length > 0 && (
-                <div className="notification-section">
-                  <h4 className="notification-section-title">✉️ Pesan dari Admin</h4>
-                  {messages
-                    .filter(msg => msg.type === 'admin' && msg.status !== 'read')
-                    .slice(0, 5)
-                    .map((msg) => (
-                      <div 
-                        key={msg.id} 
-                        className="notification-item message-item"
+              {/* Admin Messages and Admin Replies Section */}
+              {(() => {
+                const adminUnread = messages.filter(m => (m.type === 'admin' && !isMessageRead(m)) || (m.type === 'user' && m.status === 'replied' && !isMessageRead(m)));
+                if (adminUnread.length === 0) return null;
+                return (
+                  <div className="notification-section">
+                    <h4 className="notification-section-title">✉️ Pesan dari Admin</h4>
+                    {adminUnread.slice(0, 8).map((msg) => {
+                      const isReply = msg.type === 'user' && msg.status === 'replied';
+                      const displayDate = formatMessageDate(msg.sentAt || msg.createdAt || msg.repliedAt || msg.createdAt);
+                      return (
+                        <div
+                          key={msg.id}
+                          className="notification-item message-item"
+                          onClick={() => {
+                            // mark as read (admin collection or user message reply)
+                            handleMarkAsRead(msg.id, isReply ? 'user' : 'admin');
+                            setShowNotificationModal(false);
+                            setActiveTab('messages');
+                            setSidebarOpen(false);
+                          }}
+                        >
+                          <div className="notification-item-header">
+                            <span className="notification-item-type">{isReply ? 'Balasan dari Admin' : 'Pesan Baru'}</span>
+                            <span className="notification-item-date">
+                              {displayDate.toLocaleDateString('id-ID', {
+                                day: '2-digit',
+                                month: 'short',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </span>
+                          </div>
+                          <div className="notification-item-from">Dari: <strong>Admin</strong></div>
+                          <p className="notification-item-content">{isReply ? (msg.reply || '-') : (msg.message || msg.content || '-')}</p>
+                        </div>
+                      );
+                    })}
+                    {adminUnread.length > 8 && (
+                      <button
+                        className="view-all-messages-btn"
                         onClick={() => {
-                          handleMarkAsRead(msg.id);
                           setShowNotificationModal(false);
                           setActiveTab('messages');
                           setSidebarOpen(false);
                         }}
                       >
-                        <div className="notification-item-header">
-                          <span className="notification-item-type">Pesan Baru</span>
-                          <span className="notification-item-date">
-                            {formatMessageDate(msg.createdAt).toLocaleDateString('id-ID', {
-                              day: '2-digit',
-                              month: 'short',
-                              hour: '2-digit',
-                              minute: '2-digit'
-                            })}
-                          </span>
-                        </div>
-                        <p className="notification-item-content">{msg.message}</p>
-                      </div>
-                    ))}
-                  {messages.filter(msg => msg.type === 'admin' && msg.status !== 'read').length > 5 && (
-                    <button 
-                      className="view-all-messages-btn"
-                      onClick={() => {
-                        setShowNotificationModal(false);
-                        setActiveTab('messages');
-                        setSidebarOpen(false);
-                      }}
-                    >
-                      Lihat Semua Pesan →
-                    </button>
-                  )}
-                </div>
-              )}
+                        Lihat Semua Pesan →
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Empty State */}
               {announcements.length === 0 && messages.filter(msg => msg.type === 'admin' && msg.status !== 'read').length === 0 && (

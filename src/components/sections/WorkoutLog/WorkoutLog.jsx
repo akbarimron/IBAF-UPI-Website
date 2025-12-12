@@ -522,7 +522,7 @@ const WorkoutLog = ({ initialWeek = null, onWeekChange = null }) => {
                           onChange={(e) => updateSet(exerciseIndex, setIndex, 'weight', e.target.value)}
                           className="set-input"
                           min="0"
-                          step="0.5"
+                          step="0.01"
                         />
                         <input
                           type="number"
@@ -533,7 +533,7 @@ const WorkoutLog = ({ initialWeek = null, onWeekChange = null }) => {
                           min="0"
                         />
                         <span className="volume-display">
-                          {((parseFloat(set.weight) || 0) * (parseInt(set.reps) || 0)).toFixed(1)}
+                          {((parseFloat(set.weight) || 0) * (parseInt(set.reps) || 0)).toFixed(2)}
                         </span>
                         <button
                           type="button"
@@ -556,7 +556,7 @@ const WorkoutLog = ({ initialWeek = null, onWeekChange = null }) => {
                   </button>
 
                       <div className="exercise-volume">
-                        Total Volume: <strong>{calculateVolume(exercise.sets).toFixed(1)} kg</strong>
+                        Total Volume: <strong>{calculateVolume(exercise.sets).toFixed(2)} kg</strong>
                       </div>
                     </div>
                   ))}
@@ -615,7 +615,7 @@ const WorkoutLog = ({ initialWeek = null, onWeekChange = null }) => {
                       {dayLog.exercises.length} exercise{dayLog.exercises.length > 1 ? 's' : ''}
                     </div>
                     <div className="day-volume">
-                      Volume: {dayLog.totalVolume.toFixed(1)} kg
+                      Volume: {dayLog.totalVolume.toFixed(2)} kg
                     </div>
                     <button
                       onClick={() => deleteWorkoutLog(dayLog.id)}
@@ -690,12 +690,12 @@ const WorkoutLog = ({ initialWeek = null, onWeekChange = null }) => {
                             <td>{setIdx + 1}</td>
                             <td>{set.weight}</td>
                             <td>{set.reps}</td>
-                            <td>{(parseFloat(set.weight) * parseInt(set.reps)).toFixed(1)}</td>
+                            <td>{(parseFloat(set.weight) * parseInt(set.reps)).toFixed(2)}</td>
                           </tr>
                         ))}
                         <tr className="total-row">
                           <td colSpan="3"><strong>Total Volume</strong></td>
-                          <td><strong>{calculateVolume(exercise.sets).toFixed(1)} kg</strong></td>
+                          <td><strong>{calculateVolume(exercise.sets).toFixed(2)} kg</strong></td>
                         </tr>
                       </tbody>
                     </table>
@@ -703,7 +703,7 @@ const WorkoutLog = ({ initialWeek = null, onWeekChange = null }) => {
                 </div>
               ))}
               <div className="log-total-volume">
-                <strong>Total Volume Hari Ini: {log.totalVolume.toFixed(1)} kg</strong>
+                <strong>Total Volume Hari Ini: {log.totalVolume.toFixed(2)} kg</strong>
               </div>
             </div>
           ))}
