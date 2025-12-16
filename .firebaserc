@@ -1,5 +1,8 @@
 {
   "projects": {
-    "default": "ibaf-upi"
-  }
+    "default": "ibaf-upi",
+    "ibaf-upi": "ibaf-upi"
+  },
+  "targets": {},
+  "etags": {}
 }

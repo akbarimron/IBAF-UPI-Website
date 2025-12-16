@@ -103,7 +103,7 @@
   background: #e7f3ff;
   padding: 1rem;
   border-radius: 8px;
-  border: 2px solid #0066cc;
+  border: 3px solid #0066cc;
   animation: slideDown 0.3s ease;
 }
 
@@ -124,6 +124,37 @@
   color: #0066cc;
   font-size: 0.85rem;
 }
+
+/* Transitions and inline toggle styles */
+.ibaf-member-field {
+  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease, padding 0.18s ease;
+}
+
+.ibaf-toggle-group {
+  display: inline-flex;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.ibaf-toggle {
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  border: 1.5px solid rgba(0,0,0,0.06);
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  transition: all 0.18s ease;
+}
+
+.ibaf-toggle.beginner { color: #074a88; }
+.ibaf-toggle.advance { color: #8b1e2a; }
+.ibaf-toggle.active { transform: translateY(-2px) scale(1.02); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+
+.ibaf-input { transition: background 0.22s ease, border-color 0.22s ease, color 0.18s ease, box-shadow 0.18s ease; }
+
+/* Container backgrounds per category (subtle) */
+.ibaf-member-field.beginner { background: linear-gradient(180deg, rgba(78,141,255,0.06) 0%, rgba(255,255,255,0.6) 100%); border: 3px solid rgba(77,163,255,0.6); }
+.ibaf-member-field.advance { background: linear-gradient(180deg, rgba(230,57,70,0.04) 0%, rgba(255,255,255,0.6) 100%); border: 3px solid rgba(230,57,70,0.42); }
 
 .form-actions {
   margin-top: 2rem;
@@ -199,3 +230,33 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Category buttons (outside IBAF input) */
+.category-button-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.category-btn {
+  flex: 1;
+  padding: 0.6rem 0.75rem;
+  border: 3px solid #e9ecef;
+  background: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.15s ease;
+}
+
+.category-btn:hover { transform: translateY(-2px); }
+
+.category-btn.active { box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+
+/* Pemula (blue) */
+.category-btn.beginner { background: linear-gradient(90deg, #eef6ff 0%, #e6f3ff 100%); color: #063b66; border: 3px solid #cfe9ff; }
+.category-btn.beginner.active { background: linear-gradient(90deg, #4da3ff 0%, #0077ff 100%); color: #fff; border: 3px solid #0077ff; }
+
+/* Advance (red) */
+.category-btn.advance { background: #fff; color: #6a1b1b; border: 3px solid rgba(230,57,70,0.18); }
+.category-btn.advance.active { background: linear-gradient(90deg, #ff6b6b 0%, #e63946 100%); color: #fff; border: 3px solid #e63946; box-shadow: 0 6px 18px rgba(230,57,70,0.18); }
+

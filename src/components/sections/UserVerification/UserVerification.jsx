@@ -12,6 +12,7 @@ const UserVerification = ({ userData, onUpdate, showNotification }) => {
     prodi: userData?.prodi || '',
     phoneNumber: userData?.phoneNumber || '',
     jenisKelamin: userData?.jenisKelamin || '',
+    category: userData?.category === 'pemula' ? 'beginner' : userData?.category || '',
     isIbafMember: userData?.isIbafMember || false,
     ibafMembershipNumber: userData?.ibafMembershipNumber || '',
   });
@@ -150,6 +151,28 @@ const UserVerification = ({ userData, onUpdate, showNotification }) => {
             </div>
           </div>
 
+          <div className="form-group">
+            <label>Kategori <span className="required">*</span></label>
+            <div className="category-button-group">
+              <button
+                type="button"
+                className={`category-btn beginner ${formData.category === 'beginner' ? 'active' : ''}`}
+                onClick={() => setFormData(prev => ({ ...prev, category: 'beginner' }))}
+              >
+                Beginner
+              </button>
+              <button
+                type="button"
+                className={`category-btn advance ${formData.category === 'advance' ? 'active' : ''}`}
+                onClick={() => setFormData(prev => ({ ...prev, category: 'advance' }))}
+              >
+                Advance
+              </button>
+            </div>
+            <input type="hidden" name="category" value={formData.category} />
+            <small>Pilih kategori program: Pemula atau Advance</small>
+          </div>
+
           <div className="form-group checkbox-group">
             <label className="checkbox-label">
               <input
@@ -163,17 +186,21 @@ const UserVerification = ({ userData, onUpdate, showNotification }) => {
           </div>
 
           {formData.isIbafMember && (
-            <div className="form-group ibaf-member-field">
+            <div className={`form-group ibaf-member-field ${formData.category || ''}`}>
               <label>Nomor Keanggotaan IBAF <span className="required">*</span></label>
+
+              {/* Inline toggles removed — use the main category buttons above the form */}
+
               <input
                 type="text"
                 name="ibafMembershipNumber"
+                className={`ibaf-input ${formData.category || ''}`}
                 value={formData.ibafMembershipNumber}
                 onChange={handleChange}
-                placeholder="Masukkan nomor keanggotaan IBAF"
+                placeholder={formData.category === 'advance' ? 'Masukkan nomor keanggotaan IBAF' : 'Masukkan nomor keanggotaan IBAF'}
                 required={formData.isIbafMember}
               />
-              <small>Masukkan nomor keanggotaan IBAF Anda untuk verifikasi</small>
+              <small className="ibaf-help">Masukan nomor keanggotaan ibaf anda untuk verifikasi</small>
             </div>
           )}
 

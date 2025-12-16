@@ -36,19 +36,16 @@ service cloud.firestore {
     // User Messages collection
     match /userMessages/{messageId} {
       // Users can read their own messages
-      allow read: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
-      
+      allow read: if request.auth != null && resource.data.userId == request.auth.uid;
+
       // Users can create messages
-      allow create: if request.auth != null && 
-        request.resource.data.userId == request.auth.uid;
-      
-      // Users can delete their own messages
-      allow delete: if request.auth != null && 
-        resource.data.userId == request.auth.uid;
-      
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+
+      // Users can update/delete their own messages (e.g. mark as read or delete)
+      allow update, delete: if request.auth != null && resource.data.userId == request.auth.uid;
+
       // Admin can read, update, and delete all messages
-      allow read, update, delete: if request.auth != null && 
+      allow read, update, delete: if request.auth != null &&
         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     

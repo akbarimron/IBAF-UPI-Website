@@ -12,26 +12,26 @@ export default function NaraHubung() {
   const [contacts] = useState([
     {
       id: 1,
-      nama: 'Von Stroheim',
-      posisi: 'Ketua Bidan PSDO',
-      whatsapp: '6281234567890',
-      instagram: '@von_stroheim',
+      nama: 'Alfath Ilman F. R.',
+      posisi: 'Ketua Bidang PSDO',
+      whatsapp: '6281331817256',
+      instagram: '@papat_stroheim',
       image: vonImg
     },
     {
       id: 2,
       nama: 'Zachira Nur Rizkia',
       posisi: 'Bendahara Umum',
-      whatsapp: '6282198765432',
-      instagram: '@jeruk',
+      whatsapp: '6287875939198',
+      instagram: '@jeraaak0.0',
       image: jerukImg
     },
     {
       id: 3,
       nama: 'Muhamad Akbar Imron',
       posisi: 'Wakil Ketua Umum',
-      whatsapp: '6283124681357',
-      instagram: '@baret',
+      whatsapp: '6281999782893',
+      instagram: '@akbar_diy',
       image: bareImg
     }
   ]);

@@ -1,3 +1,53 @@
+/* Reply bubble for chat reply (copied and adapted from UserDashboard.css) */
+.replied-bubble {
+  background: #f1f5fb;
+  border-left: 4px solid #2196f3;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  padding: 10px 12px 8px 12px;
+  box-shadow: 0 2px 8px rgba(33, 150, 243, 0.07);
+  position: relative;
+}
+.replied-bubble.replied-in-message {
+  background: #f6fafd;
+  border-left: 4px solid #2196f3;
+  margin-bottom: 8px;
+  margin-top: 0;
+}
+.replied-label {
+  font-size: 10px;
+  color: #2196f3;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  display: inline-block;
+}
+.replied-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.replied-sender {
+  font-size: 11px;
+  color: #1976d2;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.replied-date {
+  font-size: 10px;
+  color: #888;
+  margin-left: 2px;
+}
+.replied-text {
+  font-size: 12px;
+  color: #333;
+  margin-top: 2px;
+  font-style: italic;
+  word-break: break-word;
+}
 .btn-export-workout {
   background: linear-gradient(135deg, #00bcd4 0%, #0097a7 100%);
   box-shadow: 0 4px 12px rgba(0, 188, 212, 0.3);
@@ -109,6 +159,37 @@
   gap: 1.2rem;
 }
 
+/* Notification bell in header */
+.notif-bell {
+  position: relative;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.25rem;
+}
+
+.bell-icon { font-size: 1.25rem; }
+
+.bell-badge {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  background: #dc3545;
+  color: white;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0 4px;
+}
+
 .admin-badge {
   background: rgba(182, 51, 51, 0.15);
   color: #ff6b6b;
@@ -141,14 +222,35 @@
 
 /* Main Layout - Redesigned */
 .dashboard-container {
-  max-width: 100%;
+  max-width: 100vw;
+  width: 100vw;
   margin: 0;
   display: grid;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 280px minmax(0, 1fr);
   gap: 0;
   padding: 0;
   min-height: calc(100vh - 60px);
   flex: 1;
+  box-sizing: border-box;
+}
+
+/* Full-bleed layout: sidebar and content extend to viewport edges */
+.dashboard-container {
+  max-width: 100%;
+  padding-left: 0;
+  padding-right: 0;
+}
+.header-content {
+  padding-left: 12px;
+  padding-right: 12px;
+}
+.dashboard-sidebar {
+  padding-left: 0;
+  padding-right: 0;
+}
+.dashboard-content {
+  padding-left: 0;
+  padding-right: 0;
 }
 
 /* Sidebar - Professional Modern Design */
@@ -340,6 +442,33 @@
 .stat-card.pending {
   background: #fffbeb;
   border-color: #fde68a;
+}
+
+/* Admin users table subtle reddish theme */
+.users-table-container .users-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: linear-gradient(180deg, rgba(230,57,70,0.03) 0%, rgba(255,255,255,0.6) 100%);
+  border: 1px solid rgba(230,57,70,0.12);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.users-table-container .users-table th {
+  background: rgba(235, 87, 87, 0.06);
+  color: #8b1e2a;
+  font-weight: 700;
+  padding: 12px 14px;
+  text-align: left;
+}
+.users-table-container .users-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid rgba(0,0,0,0.04);
+}
+.users-table-container .users-table tbody tr:nth-child(even) {
+  background: rgba(230,57,70,0.02);
+}
+.users-table-container .users-table tbody tr:hover {
+  background: rgba(230,57,70,0.04);
 }
 
 .stat-icon {
@@ -678,7 +807,8 @@
   width: 100%;
   border-collapse: collapse;
   background: white;
-  min-width: 1000px;
+  min-width: 0; /* allow table to shrink and avoid being clipped */
+  table-layout: auto; /* let columns size naturally */
 }
 
 .users-table th {
@@ -695,12 +825,50 @@
 }
 
 .users-table td {
-  padding: 1rem 1.25rem;
+  padding: 0.6rem 0.75rem;
   border-bottom: 1px solid #f1f3f5;
   color: #495057;
   vertical-align: middle;
   font-size: 0.875rem;
+  box-sizing: border-box;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
+
+/* Reduce gap between photo and name columns */
+.users-table td:nth-child(2) {
+  padding: 0.45rem 0.5rem; /* photo cell */
+}
+.users-table td:nth-child(3) {
+  padding: 0.45rem 0.6rem; /* name cell */
+}
+
+/* Column widths for neat layout */
+.users-table thead th:nth-child(1) { width: 64px; }
+.users-table thead th:nth-child(2) { width: 220px; }
+.users-table thead th:nth-child(3) { width: 260px; }
+.users-table thead th:nth-child(4) { width: 90px; }
+.users-table thead th:nth-child(5) { width: 100px; }
+.users-table thead th:nth-child(6) { width: 100px; }
+.users-table thead th:nth-child(7) { width: 100px; }
+.users-table thead th:nth-child(8) { width: 90px; }
+.users-table thead th:nth-child(9) { width: 86px; text-align: center; }
+
+.user-photo img, .user-photo .avatar-icon-display, .photo-placeholder { width: 40px; height: 40px; }
+.user-photo { width: 40px; height: 40px; }
+
+/* Make name/email wrap with ellipsis inside cell */
+.users-table td:nth-child(2), .users-table td:nth-child(3) {
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Align action buttons */
+.users-table td:nth-child(9) { text-align: center; }
+.users-table td:nth-child(9) .btn-delete, .users-table td:nth-child(9) .btn-reply { margin-left: 6px; }
 
 .users-table tbody tr {
   transition: all 0.2s ease;
@@ -831,11 +999,34 @@
   color: white;
 }
 
+/* Category badge shown in users table */
+.user-category {
+  display: inline-block;
+  padding: 0.35rem 0.7rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-transform: capitalize;
+}
+
+.user-category.beginner {
+  background: linear-gradient(90deg,#eef6ff 0%,#e6f3ff 100%);
+  color: #063b66;
+  border: 1px solid #cfe9ff;
+}
+
+.user-category.advance {
+  background: linear-gradient(90deg,#ffecec 0%,#ffdede 100%);
+  color: #6a1b1b;
+  border: 1px solid rgba(230,57,70,0.12);
+}
+
 .action-buttons-cell {
   display: flex;
   gap: 0.4rem;
   flex-wrap: wrap;
   align-items: center;
+  position: relative; /* needed for absolute-positioned popup */
 }
 
 .action-buttons-cell button {
@@ -858,6 +1049,114 @@
 
 .action-buttons-cell button .btn-text {
   font-size: 0.75rem;
+}
+
+/* Compact action menu */
+.action-menu-button {
+  padding: 0.4rem 0.6rem;
+  background: #1a1d29;
+  color: #fff;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.action-menu-button:hover {
+  background: #2a2d39;
+}
+
+.action-popup {
+  position: fixed; /* show like notification */
+  top: 20px;
+  left: 20px; /* moved to left side */
+  right: auto;
+  background: white;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 12px 40px rgba(0,0,0,0.12);
+  border-radius: 10px;
+  padding: 0.6rem;
+  min-width: 260px;
+  z-index: 1400;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  /* default: slide down from above (mobile/left placement) */
+  transform: translateX(0) translateY(0);
+  animation: slideDownLeft 220ms ease forwards;
+}
+
+.action-popup.beginner { border-left: 6px solid #0369a1; }
+.action-popup.advance { border-left: 6px solid #b91c1c; }
+
+.popup-header {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.popup-avatar img,
+.popup-avatar .avatar-icon-display,
+.photo-placeholder-small {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.popup-user-info strong { display:block; color:#1a1d29; font-size:0.95rem; }
+.popup-user-email { display:block; color:#6c757d; font-size:0.8rem; }
+
+.popup-actions { display:flex; flex-direction:column; gap:0.4rem; padding-top:0.25rem; }
+
+.action-popup .popup-item {
+  background: transparent;
+  border: none;
+  padding: 0.5rem 0.6rem;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.action-popup .popup-item:hover { background: #f8f9fa; }
+
+.action-popup .popup-item.danger { color: #fff; background: #8b0000; }
+
+/* Highlight important popup actions */
+.action-popup .popup-item.approve { background: linear-gradient(90deg, #28a745 0%, #1e7e34 100%); color: white; }
+.action-popup .popup-item.approve:hover { filter: brightness(0.95); }
+.action-popup .popup-item.reject { background: linear-gradient(90deg, #ff9800 0%, #f57c00 100%); color: white; }
+.action-popup .popup-item.reject:hover { filter: brightness(0.95); }
+.action-popup .popup-item.ban { background: linear-gradient(90deg, #dc3545 0%, #b52b2b 100%); color: white; }
+.action-popup .popup-item.ban:hover { filter: brightness(0.95); }
+
+@keyframes slideDownLeft {
+  from { transform: translateY(-8px); opacity: 0 }
+  to   { transform: translateY(0); opacity: 1 }
+}
+
+/* Desktop: make popup larger and exactly centered; use separate animation that preserves translateX(-50%) */
+@media (min-width: 1024px) {
+  .action-popup {
+    top: 40px;
+    min-width: 480px;
+    left: 50%;
+    right: auto;
+    transform: translate(-50%, 0);
+    animation: slideDownCenter 220ms ease forwards;
+  }
+
+  @keyframes slideDownCenter {
+    from { transform: translate(-50%, -12px); opacity: 0 }
+    to   { transform: translate(-50%, 0); opacity: 1 }
+  }
 }
 
 .btn-view {
@@ -1109,6 +1408,21 @@
   gap: 1.5rem;
 }
 
+/* Make the messages view use a column layout where the thread scrolls
+   and the chat input stays sticky at the bottom */
+.messages-tab {
+  display: flex;
+  flex-direction: column;
+  /* Adjust this offset if you have a taller header/navbar */
+  height: calc(100vh - 160px);
+}
+
+.messages-thread {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  padding: 1rem 0.25rem 1.25rem; /* bottom padding so last message isn't hidden */
+}
+
 .messages-list {
   display: flex;
   flex-direction: column;
@@ -1246,6 +1560,18 @@
   align-items: flex-start;
 }
 
+/* Small styled note when a message is marked read */
+.info-text {
+  background: linear-gradient(90deg,#f1f7ff 0%,#eef6ff 100%);
+  color: #0b57a4;
+  padding: 0.35rem 0.6rem;
+  border-radius: 8px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: inline-block;
+  border: 1px solid rgba(13,88,163,0.08);
+}
+
 .message-actions button {
   padding: 0.6rem 1.2rem;
   border: none;
@@ -1275,6 +1601,22 @@
   transform: translateY(-2px);
 }
 
+/* Icon-only delete button used in message list */
+.btn-delete.icon-delete {
+  background: transparent;
+  color: #c82333;
+  padding: 6px;
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.02rem;
+}
+.btn-delete.icon-delete:hover {
+  background: rgba(200,40,50,0.06);
+  transform: none;
+}
+
 .reply-form {
   flex: 1;
   display: flex;
@@ -1292,6 +1634,44 @@
   transition: all 0.3s ease;
 }
 
+/* Chat input area (inline admin chat) */
+.chat-input-area {
+  display: flex;
+  gap: 0.6rem;
+  align-items: center;
+  padding: 0.75rem 0.5rem;
+  border-top: 1px solid #e9ecef;
+  margin-top: 0.75rem;
+  background: #fff;
+  position: sticky;
+  bottom: 0;
+  z-index: 60;
+  box-shadow: 0 -6px 18px rgba(0,0,0,0.06);
+}
+
+.chat-textarea {
+  flex: 1;
+  min-height: 44px;
+  max-height: 160px;
+  padding: 0.6rem 0.8rem;
+  border: 1px solid #ced4da;
+  border-radius: 8px;
+  resize: none;
+  font-family: inherit;
+}
+
+.btn-send-chat {
+  padding: 0.6rem 1rem;
+  background: linear-gradient(90deg,#B63333 0%,#8a2525 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.btn-send-chat:hover { filter: brightness(0.95); }
+
 .reply-form textarea:focus {
   outline: none;
   border-color: #B63333;
@@ -1308,6 +1688,15 @@
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(182, 51, 51, 0.3);
 }
+
+/* Reply category selector */
+.reply-category { margin-bottom: 0.5rem; }
+.reply-category label { display:block; font-weight:600; margin-bottom:0.35rem; }
+.reply-category-buttons { display:flex; gap:0.5rem; }
+.reply-category-buttons .category-btn { padding:0.45rem 0.6rem; border-radius:6px; border:2px solid #e9ecef; cursor:pointer; font-weight:600; }
+.reply-category-buttons .category-btn.beginner { background:linear-gradient(90deg,#eef6ff 0%,#e6f3ff 100%); color:#063b66; }
+.reply-category-buttons .category-btn.advance { background:#fff; color:#6a1b1b; border:2px solid rgba(230,57,70,0.18); }
+.reply-category-buttons .category-btn.active { box-shadow:0 8px 20px rgba(0,0,0,0.06); transform:translateY(-2px); }
 
 /* User Detail Tab */
 .detail-header {
@@ -1469,6 +1858,46 @@
 .info-row span {
   color: #2c3e50;
 }
+
+/* IBAF edit controls (admin) */
+.ibaf-edit-row .ibaf-edit-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.ibaf-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-weight: 600;
+  color: #495057;
+}
+.ibaf-number-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  min-width: 220px;
+}
+.btn-save-ibaf {
+  padding: 0.5rem 0.9rem;
+  background: linear-gradient(90deg,#074a88,#0b61a8);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.btn-reset-verify {
+  padding: 0.5rem 0.75rem;
+  background: #fff5f5;
+  border: 1px solid rgba(230,57,70,0.12);
+  color: #8b1e2a;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+.btn-reset-verify:hover { background: rgba(230,57,70,0.04); }
+.btn-save-ibaf:disabled { opacity: 0.6; cursor: not-allowed; }
 
 /* Workout Logs Section */
 .workout-logs-section h3 {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { 
@@ -26,6 +26,7 @@ const AdminDashboard = () => {
   const [messages, setMessages] = useState([]);
   const [userInboxes, setUserInboxes] = useState([]); // Array of users with their message counts
   const [selectedUserForMessages, setSelectedUserForMessages] = useState(null); // User selected to view messages
+  const selectedUserForMessagesRef = useRef(null);
   const [userMessages, setUserMessages] = useState([]); // Messages from selected user
   const [messageFilter, setMessageFilter] = useState('all'); // all, received, sent
   const [workoutLogs, setWorkoutLogs] = useState([]);
@@ -36,9 +37,32 @@ const AdminDashboard = () => {
   const [selectedDayFilter, setSelectedDayFilter] = useState('all');
   const [loading, setLoading] = useState(false);
   const [replyText, setReplyText] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [openActionMenuId, setOpenActionMenuId] = useState(null);
+  const [tempIsIbafMember, setTempIsIbafMember] = useState(null);
+  const [tempIbafNumber, setTempIbafNumber] = useState('');
+  const actionPopupRef = useRef(null);
+
+  useEffect(() => {
+    // keep a ref in sync so realtime listeners can read the latest selected inbox
+    selectedUserForMessagesRef.current = selectedUserForMessages;
+  }, [selectedUserForMessages]);
+  
+  // Click-outside handler for action popup
+  useEffect(() => {
+    function handleOutside(e) {
+      if (actionPopupRef.current && !actionPopupRef.current.contains(e.target)) {
+        setOpenActionMenuId(null);
+      }
+    }
+    document.addEventListener('mousedown', handleOutside);
+    return () => document.removeEventListener('mousedown', handleOutside);
+  }, []);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [showMessageModal, setShowMessageModal] = useState(false);
   const [messageModalData, setMessageModalData] = useState({ userId: '', userName: '', message: '' });
+  const [chatMessage, setChatMessage] = useState('');
+  const [isSendingAdminMessage, setIsSendingAdminMessage] = useState(false);
   const [stats, setStats] = useState({
     totalUsers: 0,
     activeUsers: 0,
@@ -184,15 +208,16 @@ const AdminDashboard = () => {
         
         // Combine all messages
         const allMessages = [...userMessagesData, ...adminMessagesData];
-        
+
+        // Deduplicate by id (keep latest entry)
+        const byId = new Map();
+        allMessages.forEach(m => byId.set(m.id, m));
+        const uniqueMessages = Array.from(byId.values());
+
         // Sort by createdAt descending
-        allMessages.sort((a, b) => {
-          const dateA = new Date(a.createdAt);
-          const dateB = new Date(b.createdAt);
-          return dateB - dateA;
-        });
-        
-        setMessages(allMessages);
+        uniqueMessages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+        setMessages(uniqueMessages);
         
         // Group messages by user for inbox view
         const inboxMap = new Map();
@@ -230,9 +255,10 @@ const AdminDashboard = () => {
         
         setUserInboxes(inboxArray);
         
-        // Update selected user messages if viewing
-        if (selectedUserForMessages) {
-          const updatedInbox = inboxArray.find(inbox => inbox.userId === selectedUserForMessages.userId);
+        // Update selected user messages if viewing (read the latest selection from ref)
+        const currentSelection = selectedUserForMessagesRef.current;
+        if (currentSelection) {
+          const updatedInbox = inboxArray.find(inbox => inbox.userId === currentSelection.userId);
           if (updatedInbox) {
             setUserMessages(updatedInbox.messages);
           }
@@ -266,6 +292,40 @@ const AdminDashboard = () => {
       await fetchUsers();
     } catch (error) {
       console.error('Error fetching data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Keep temp IBAF edit fields in sync when selected user changes
+  useEffect(() => {
+    if (selectedUser) {
+      setTempIsIbafMember(!!selectedUser.isIbafMember);
+      setTempIbafNumber(selectedUser.ibafMembershipNumber || '');
+    } else {
+      setTempIsIbafMember(null);
+      setTempIbafNumber('');
+    }
+  }, [selectedUser]);
+
+  const handleSetIbafMember = async (userId) => {
+    try {
+      setLoading(true);
+      await updateDoc(doc(db, 'users', userId), {
+        isIbafMember: !!tempIsIbafMember,
+        ibafMembershipNumber: tempIsIbafMember ? (tempIbafNumber || '') : '',
+        updatedAt: new Date().toISOString()
+      });
+
+      setUsers(prev => prev.map(u => u.id === userId ? ({ ...u, isIbafMember: !!tempIsIbafMember, ibafMembershipNumber: tempIsIbafMember ? tempIbafNumber : '' }) : u));
+      if (selectedUser && selectedUser.id === userId) {
+        setSelectedUser(prev => ({ ...prev, isIbafMember: !!tempIsIbafMember, ibafMembershipNumber: tempIsIbafMember ? tempIbafNumber : '' }));
+      }
+
+      showNotif('✅ Status IBAF berhasil diperbarui', 'success');
+    } catch (err) {
+      console.error('Error updating IBAF status:', err);
+      showNotif('❌ Gagal mengupdate status IBAF', 'error');
     } finally {
       setLoading(false);
     }
@@ -435,25 +495,37 @@ const handleShowDeactivateConfirm = (userId) => {
     });
   };
 
-  const handleReplyMessage = async (messageId) => {
+  const handleReplyMessage = async (messageId, userId) => {
     if (!replyText.trim()) {
       alert('Tulis balasan terlebih dahulu');
       return;
     }
 
     try {
-      await updateDoc(doc(db, 'userMessages', messageId), {
+      const repliedAt = new Date().toISOString();
+      const replyPayload = {
         reply: replyText.trim(),
         status: 'replied',
-        repliedAt: new Date().toISOString(),
+        repliedAt,
         repliedBy: currentUser.email
-      });
-      
+      };
+
+      await updateDoc(doc(db, 'userMessages', messageId), replyPayload);
+
+      // Update local UI state immediately so reply shows without full refresh
+      setUserMessages(prev => Array.isArray(prev) ? prev.map(m => m.id === messageId ? { ...m, ...replyPayload } : m) : prev);
+      setMessages(prev => Array.isArray(prev) ? prev.map(m => m.id === messageId ? { ...m, ...replyPayload } : m) : prev);
+      setUserInboxes(prev => Array.isArray(prev) ? prev.map(inbox => ({
+        ...inbox,
+        messages: (inbox.messages || []).map(m => m.id === messageId ? { ...m, ...replyPayload } : m)
+      })) : prev);
+      // category updates are handled from the user detail view now
+
       setReplyText('');
-      alert('Balasan berhasil dikirim');
+      showNotif('✅ Balasan berhasil dikirim', 'success');
     } catch (error) {
       console.error('Error replying message:', error);
-      alert('Gagal mengirim balasan');
+      showNotif('❌ Gagal mengirim balasan', 'error');
     }
   };
 
@@ -479,6 +551,15 @@ const handleShowDeactivateConfirm = (userId) => {
       try {
         const collectionName = messageType === 'admin' ? 'adminMessages' : 'userMessages';
         await deleteDoc(doc(db, collectionName, messageId));
+
+        // Optimistically update local state so UI reflects deletion immediately
+        setUserMessages(prev => Array.isArray(prev) ? prev.filter(m => m.id !== messageId) : prev);
+        setMessages(prev => Array.isArray(prev) ? prev.filter(m => m.id !== messageId) : prev);
+        setUserInboxes(prev => Array.isArray(prev) ? prev.map(inbox => ({
+          ...inbox,
+          messages: (inbox.messages || []).filter(m => m.id !== messageId)
+        })) : prev);
+
         showNotif('✅ Pesan berhasil dihapus', 'success');
       } catch (error) {
         console.error('Error deleting message:', error);
@@ -493,10 +574,57 @@ const handleShowDeactivateConfirm = (userId) => {
     setUserMessages(inbox.messages);
   };
 
+    // Allow admin to change user's category from the user detail view
+    const handleChangeUserCategory = async (userId, category) => {
+      try {
+        await updateDoc(doc(db, 'users', userId), {
+          category,
+          updatedAt: new Date().toISOString()
+        });
+
+        // Update local state to reflect change immediately
+        setUsers(prev => prev.map(u => u.id === userId ? { ...u, category } : u));
+        if (selectedUser && selectedUser.id === userId) {
+          setSelectedUser(prev => ({ ...prev, category }));
+        }
+
+        showNotif('✅ Kategori user berhasil diubah', 'success');
+      } catch (err) {
+        console.error('Error updating user category:', err);
+        showNotif('❌ Gagal mengubah kategori user', 'error');
+      }
+    };
+
   const handleBackToInbox = () => {
     setSelectedUserForMessages(null);
     setUserMessages([]);
     setReplyText('');
+  };
+
+  // Admin: reset / clear verification data so user can refill and resubmit
+  const handleAdminResetVerification = async (userId) => {
+    try {
+      setLoading(true);
+      await updateDoc(doc(db, 'users', userId), {
+        verificationStatus: 'not_submitted',
+        verificationRequestedAt: null,
+        rejectionReason: '',
+        approvedAt: null,
+        updatedAt: new Date().toISOString()
+      });
+
+      setUsers(prev => prev.map(u => u.id === userId ? ({ ...u, verificationStatus: 'not_submitted', verificationRequestedAt: null, rejectionReason: '' }) : u));
+      if (selectedUser && selectedUser.id === userId) {
+        setSelectedUser(prev => ({ ...prev, verificationStatus: 'not_submitted', verificationRequestedAt: null, rejectionReason: '' }));
+      }
+
+      showNotif('✅ Data verifikasi telah direset. Minta user untuk mengisi ulang.', 'success');
+    } catch (err) {
+      console.error('Error resetting verification:', err);
+      showNotif('❌ Gagal mereset data verifikasi', 'error');
+    } finally {
+      setLoading(false);
+    }
   };
 
   // Show notification
@@ -695,7 +823,8 @@ const handleShowDeactivateConfirm = (userId) => {
           showNotif('⚠️ Pesan tidak boleh kosong!', 'warning');
           return;
         }
-        
+        if (isSendingAdminMessage) return;
+        setIsSendingAdminMessage(true);
         try {
           await addDoc(collection(db, 'adminMessages'), {
             userId: user.id,
@@ -712,6 +841,8 @@ const handleShowDeactivateConfirm = (userId) => {
         } catch (error) {
           console.error('Error sending message:', error);
           showNotif('❌ Gagal mengirim pesan', 'error');
+        } finally {
+          setIsSendingAdminMessage(false);
         }
       }
     });
@@ -722,7 +853,8 @@ const handleShowDeactivateConfirm = (userId) => {
       alert('Pesan tidak boleh kosong');
       return;
     }
-
+    if (isSendingAdminMessage) return;
+    setIsSendingAdminMessage(true);
     try {
       await addDoc(collection(db, 'adminMessages'), {
         userId: messageModalData.userId,
@@ -740,6 +872,60 @@ const handleShowDeactivateConfirm = (userId) => {
     } catch (error) {
       console.error('Error sending message:', error);
       alert('Gagal mengirim pesan');
+    } finally {
+      setIsSendingAdminMessage(false);
+    }
+  };
+
+  const handleSendInlineMessage = async () => {
+    const text = chatMessage.trim();
+    if (!selectedUserForMessages || !text) return;
+    if (isSendingAdminMessage) return;
+    setIsSendingAdminMessage(true);
+    const payload = {
+      userId: selectedUserForMessages.userId,
+      userEmail: selectedUserForMessages.userEmail,
+      userName: selectedUserForMessages.userName,
+      message: text,
+      sentBy: currentUser.email,
+      sentAt: new Date().toISOString(),
+      read: false,
+      status: 'unread'
+    };
+
+    try {
+      const docRef = await addDoc(collection(db, 'adminMessages'), payload);
+      // optimistic UI update: update thread, global messages and inboxes
+      const newMsg = { id: docRef.id, ...payload, type: 'admin', createdAt: payload.sentAt };
+      setUserMessages(prev => {
+        const list = Array.isArray(prev) ? prev : [];
+        if (list.some(m => m.id === newMsg.id)) return list;
+        return [{ ...newMsg }, ...list];
+      });
+      setMessages(prev => {
+        const list = Array.isArray(prev) ? prev : [];
+        if (list.some(m => m.id === newMsg.id)) return list;
+        return [{ ...newMsg }, ...list];
+      });
+      setUserInboxes(prev => Array.isArray(prev) ? prev.map(inbox => {
+        if (inbox.userId === selectedUserForMessages.userId) {
+          const updated = { ...inbox };
+          const msgs = Array.isArray(updated.messages) ? updated.messages : [];
+          if (!msgs.some(m => m.id === newMsg.id)) {
+            updated.messages = [...msgs, newMsg];
+          }
+          updated.lastMessageDate = newMsg.createdAt;
+          return updated;
+        }
+        return inbox;
+      }) : prev);
+      setChatMessage('');
+      showNotif('✅ Pesan terkirim', 'success');
+    } catch (err) {
+      console.error('Error sending inline message', err);
+      showNotif('❌ Gagal mengirim pesan', 'error');
+    } finally {
+      setIsSendingAdminMessage(false);
     }
   };
 
@@ -830,6 +1016,42 @@ const handleShowDeactivateConfirm = (userId) => {
     setFilteredUsers(filtered);
   };
 
+  const handleSearchChange = (q) => {
+    setSearchQuery(q);
+    const lowered = q.trim().toLowerCase();
+    // Start from users filtered by current tab
+    let base = [];
+    switch(userFilterTab) {
+      case 'approved':
+        base = users.filter(u => u.verificationStatus === 'approved');
+        break;
+      case 'pending':
+        base = users.filter(u => u.verificationStatus === 'pending');
+        break;
+      case 'rejected':
+        base = users.filter(u => u.verificationStatus === 'rejected');
+        break;
+      case 'not_submitted':
+        base = users.filter(u => !u.verificationStatus || u.verificationStatus === 'not_submitted');
+        break;
+      case 'all':
+      default:
+        base = users;
+    }
+
+    if (!lowered) {
+      setFilteredUsers(base);
+      return;
+    }
+
+    const searched = base.filter(u => {
+      const name = (u.name || u.fullName || '').toLowerCase();
+      const email = (u.email || '').toLowerCase();
+      return name.includes(lowered) || email.includes(lowered);
+    });
+    setFilteredUsers(searched);
+  };
+
   const handleLogout = async () => {
     try {
       await logout();
@@ -876,6 +1098,12 @@ const handleShowDeactivateConfirm = (userId) => {
             </Link>
           </div>
           <div className="header-actions">
+            <button className="notif-bell" onClick={() => setActiveTab('messages')} title="Notifikasi">
+              <span className="bell-icon">🔔</span>
+              {stats.pendingMessages > 0 && (
+                <span className="bell-badge">{stats.pendingMessages}</span>
+              )}
+            </button>
             <span className="admin-badge">⚡ Admin</span>
             <button onClick={handleLogout} className="logout-btn">
               Logout
@@ -999,9 +1227,13 @@ const handleShowDeactivateConfirm = (userId) => {
                 <div className="activity-list">
                   {messages.slice(0, 5).map((msg) => (
                     <div key={msg.id} className="activity-item">
-                      <div className="activity-icon">✉</div>
+                      <div className="activity-icon">{msg.type === 'admin' ? '📤' : '✉'}</div>
                       <div className="activity-content">
-                        <p><strong>{msg.userName}</strong> mengirim pesan</p>
+                        {msg.type === 'admin' ? (
+                          <p><strong>{msg.sentBy === currentUser?.email ? 'Anda' : msg.sentBy}</strong> mengirim pesan ke <strong>{msg.userName}</strong></p>
+                        ) : (
+                          <p><strong>{msg.userName}</strong> mengirim pesan</p>
+                        )}
                         <span className="activity-time">
                           {new Date(msg.createdAt).toLocaleString('id-ID')}
                         </span>
@@ -1076,197 +1308,165 @@ const handleShowDeactivateConfirm = (userId) => {
                   <span className="tab-description">Belum mengisi verifikasi</span>
                 </button>
               </div>
-              
-              <div className="table-controls">
-                <input 
-                  type="text" 
-                  placeholder="🔍 Cari nama atau email..." 
-                  className="search-input"
-                  onChange={(e) => {
-                    const value = e.target.value.toLowerCase();
-                    if (!value.trim()) {
-                      filterUsersByTab(userFilterTab);
-                    } else {
-                      let baseUsers = [...users];
-                      
-                      // Apply tab filter first
-                      if (userFilterTab === 'approved') {
-                        baseUsers = users.filter(u => u.verificationStatus === 'approved');
-                      } else if (userFilterTab === 'pending') {
-                        baseUsers = users.filter(u => u.verificationStatus === 'pending');
-                      } else if (userFilterTab === 'rejected') {
-                        baseUsers = users.filter(u => u.verificationStatus === 'rejected');
-                      } else if (userFilterTab === 'not_submitted') {
-                        baseUsers = users.filter(u => !u.verificationStatus || u.verificationStatus === 'not_submitted');
-                      }
-                      
-                      // Then apply search
-                      const filtered = baseUsers.filter(u => 
-                        u.name?.toLowerCase().includes(value) || 
-                        u.email?.toLowerCase().includes(value) ||
-                        u.fullName?.toLowerCase().includes(value)
-                      );
-                      setFilteredUsers(filtered);
-                    }
-                  }}
-                />
-              </div>
-
               <div className="users-table-container">
-                <table className="users-table">
-                  <thead>
-                    <tr>
-                      <th>Photo</th>
-                      <th>Nama</th>
-                      <th>Email</th>
-                      <th>Role</th>
-                      <th>Verifikasi</th>
-                      <th>Member IBAF</th>
-                      <th>Status</th>
-                      <th>Aksi</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredUsers.map((user) => (
-                      <tr key={user.id}>
-                        <td>
-                          <div className="user-photo">
-                            {user.avatar ? (
-                              <div className="avatar-icon-display" style={{ color: user.avatar.color }}>
-                                {React.createElement(getAvatarComponent(user.avatar.icon), { size: 30 })}
-                              </div>
-                            ) : user.photoURL ? (
-                              <img src={user.photoURL} alt={user.name} />
+                <div className="table-controls" style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '0.75rem', padding: '0.75rem'}}>
+                  <input
+                    type="text"
+                    className="search-input"
+                    placeholder="Cari nama atau email..."
+                    value={searchQuery}
+                    onChange={(e) => handleSearchChange(e.target.value)}
+                  />
+                </div>
+      <table className="users-table">
+        <thead>
+          <tr>
+            <th>Aksi</th>
+            <th>Photo</th>
+            <th>Nama</th>
+            <th>Verifikasi</th>
+            <th>Member IBAF</th>
+            <th>Kategori</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filteredUsers.map((user) => (
+            <tr key={user.id}>
+              {/* KOLOM AKSI - dipindahkan ke kiri */}
+              <td>
+                <div className="action-buttons-cell">
+                  <button
+                    className="action-menu-button"
+                    onClick={(e) => { e.stopPropagation(); setOpenActionMenuId(openActionMenuId === user.id ? null : user.id); }}
+                    title="Aksi"
+                  >
+                    ⋯ Aksi
+                  </button>
+
+                  {openActionMenuId === user.id && (
+                    <div ref={actionPopupRef} className={`action-popup ${user.category || ''}`} onClick={(e) => e.stopPropagation()}>
+                      <div className="popup-header">
+                        <div className="popup-avatar">
+                          {user.avatar ? (
+                            <div className="avatar-icon-display" style={{ color: user.avatar.color }}>
+                              {React.createElement(getAvatarComponent(user.avatar.icon), { size: 36 })}
+                            </div>
+                          ) : user.photoURL ? (
+                            <img src={user.photoURL} alt={user.name} />
+                          ) : (
+                            <div className="photo-placeholder-small">{user.name?.charAt(0).toUpperCase() || 'U'}</div>
+                          )}
+                        </div>
+                        <div className="popup-user-info">
+                          <strong>{user.name || user.fullName || '-'}</strong>
+                          <span className="popup-user-email">{user.email}</span>
+                        </div>
+                      </div>
+
+                      <div className="popup-actions">
+                        <button className="popup-item" onClick={() => { handleViewUserDetails(user); setOpenActionMenuId(null); }}>👁 Lihat</button>
+
+                        {user.verificationStatus === 'pending' && user.role !== 'admin' && (
+                          <>
+                            <button className="popup-item approve" onClick={() => { handleApproveUser(user.id, user.isIbafMember); setOpenActionMenuId(null); }}>✓ Setujui</button>
+                            <button className="popup-item reject" onClick={() => { handleRejectUser(user.id); setOpenActionMenuId(null); }}>✕ Tolak</button>
+                          </>
+                        )}
+
+                        <button className="popup-item" onClick={() => { handleSendMessageToUser(user); setOpenActionMenuId(null); }}>✉ Pesan</button>
+
+                        {user.role !== 'admin' && (
+                          <>
+                            <button className="popup-item" onClick={() => { handleToggleUserStatus(user.id, user.isActive !== false); setOpenActionMenuId(null); }}>{user.isActive !== false ? '⏸ Nonaktifkan' : '▶ Aktifkan'}</button>
+                            {user.isBanned ? (
+                              <button className="popup-item approve" onClick={() => { handleUnbanUser(user.id); setOpenActionMenuId(null); }}>✓ Unban</button>
                             ) : (
-                              <div className="photo-placeholder">
-                                {user.name?.charAt(0).toUpperCase() || 'U'}
-                              </div>
+                              <button className="popup-item ban" onClick={() => { handleBanUser(user.id); setOpenActionMenuId(null); }}>⊝ Ban</button>
                             )}
-                          </div>
-                        </td>
-                        <td>
-                          <strong>{user.name || 'No Name'}</strong>
-                        </td>
-                        <td>{user.email}</td>
-                        <td>
-                          <span className={`role-badge ${user.role}`}>
-                            {user.role || 'user'}
-                          </span>
-                        </td>
-                        <td>
-                          {user.verificationStatus === 'pending' ? (
-                            <span className="badge-pending">⏳ Pending</span>
-                          ) : user.verificationStatus === 'approved' ? (
-                            <span className="badge-active">✓ Disetujui</span>
-                          ) : user.verificationStatus === 'rejected' ? (
-                            <span className="badge-inactive">❌ Ditolak</span>
-                          ) : (
-                            <span className="badge-inactive">⚪ Belum Submit</span>
-                          )}
-                        </td>
-                        <td>
-                          {user.isIbafMember ? (
-                            <span className="badge-active">✓ Member</span>
-                          ) : (
-                            <span style={{color: '#6c757d'}}>-</span>
-                          )}
-                        </td>
-                        <td>
-                          {user.isBanned ? (
-                            <span className="status-badge banned">🚫 Banned</span>
-                          ) : user.isActive !== false ? (
-                            <span className="status-badge active">✓ Aktif</span>
-                          ) : (
-                            <span className="status-badge inactive">✗ Tidak Aktif</span>
-                          )}
-                        </td>
-                        <td>
-                          <div className="action-buttons-cell">
-                            <button
-                              onClick={() => handleViewUserDetails(user)}
-                              className="btn-view"
-                              title="Lihat detail lengkap user termasuk data verifikasi dan workout logs"
-                            >
-                              <span className="btn-icon">👁</span>
-                              <span className="btn-text">Lihat</span>
-                            </button>
-                            
-                            {user.verificationStatus === 'pending' && user.role !== 'admin' && (
-                              <>
-                                <button
-                                  onClick={() => handleApproveUser(user.id, user.isIbafMember)}
-                                  className="btn-approve"
-                                  title="Setujui verifikasi user - User dapat akses dashboard penuh"
-                                >
-                                  <span className="btn-icon">✓</span>
-                                  <span className="btn-text">Setujui</span>
-                                </button>
-                                <button
-                                  onClick={() => handleRejectUser(user.id)}
-                                  className="btn-reject"
-                                  title="Tolak verifikasi user - Akan diminta alasan penolakan"
-                                >
-                                  <span className="btn-icon">✕</span>
-                                  <span className="btn-text">Tolak</span>
-                                </button>
-                              </>
-                            )}
-                            
-                            <button
-                              onClick={() => handleSendMessageToUser(user)}
-                              className="btn-message"
-                              title="Kirim pesan pribadi ke user - Pesan akan muncul di dashboard user"
-                            >
-                              <span className="btn-icon">✉</span>
-                              <span className="btn-text">Pesan</span>
-                            </button>
-                            
-                            {user.role !== 'admin' && (
-                              <>
-                                <button
-                                    onClick={() => handleToggleUserStatus(user.id, user.isActive !== false)}
-                                    className={user.isActive !== false ? 'btn-deactivate' : 'btn-activate'}
-                                    title={user.isActive !== false ? 'Nonaktifkan user - User tidak dapat login' : 'Aktifkan user - User dapat login kembali'}
-                                  >
-                                    <span className="btn-icon">{user.isActive !== false ? '⏸' : '▶'}</span>
-                                    <span className="btn-text">{user.isActive !== false ? 'Nonaktifkan' : 'Aktifkan'}</span>
-                                  </button>
-                                {user.isBanned ? (
-                                  <button
-                                    onClick={() => handleUnbanUser(user.id)}
-                                    className="btn-unban"
-                                    title="Unban user - Cabut status banned"
-                                  >
-                                    <span className="btn-icon">✓</span>
-                                    <span className="btn-text">Unban</span>
-                                  </button>
-                                ) : (
-                                  <button
-                                    onClick={() => handleBanUser(user.id)}
-                                    className="btn-ban"
-                                    title="Ban user - User akan di-banned permanen"
-                                  >
-                                    <span className="btn-icon">⊝</span>
-                                    <span className="btn-text">Ban</span>
-                                  </button>
-                                )}
-                                <button
-                                  onClick={() => handleDeleteUser(user.id, user.name || user.email)}
-                                  className="btn-delete-user"
-                                  title="HAPUS AKUN - Menghapus user dan semua datanya secara permanen (TIDAK DAPAT DIBATALKAN!)"
-                                >
-                                  <span className="btn-icon">🗑</span>
-                                  <span className="btn-text">Hapus</span>
-                                </button>
-                              </>
-                            )}
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                            <button className="popup-item danger" onClick={() => { handleDeleteUser(user.id, user.name || user.email); setOpenActionMenuId(null); }}>🗑 Hapus</button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </td>
+              {/* KOLOM PHOTO - DIPERBAIKI */}
+              <td>
+                <div className="user-photo">
+                  {user.avatar ? (
+                    <div className="avatar-icon-display" style={{ color: user.avatar.color }}>
+                      {React.createElement(getAvatarComponent(user.avatar.icon), { size: 40 })}
+                    </div>
+                  ) : user.photoURL ? (
+                    <img src={user.photoURL} alt={user.name} />
+                  ) : (
+                    <div className="photo-placeholder">
+                      {user.name?.charAt(0).toUpperCase() || 'U'}
+                    </div>
+                  )}
+                </div>
+              </td>
+              
+              {/* KOLOM NAMA */}
+              <td>
+                <div className="user-name-cell">
+                  {user.name || user.fullName || '-'}
+                </div>
+              </td>
+              
+              {/* KOLOM VERIFIKASI */}
+              <td>
+                {user.verificationStatus === 'pending' ? (
+                  <span className="badge-pending">⏳ Pending</span>
+                ) : user.verificationStatus === 'approved' ? (
+                  <span className="badge-active">✓ Disetujui</span>
+                ) : user.verificationStatus === 'rejected' ? (
+                  <span className="badge-inactive">❌ Ditolak</span>
+                ) : (
+                  <span className="badge-inactive">⚪ Belum Submit</span>
+                )}
+              </td>
+              
+              {/* KOLOM MEMBER IBAF */}
+              <td>
+                {user.isIbafMember ? (
+                  <span className="badge-active">✓ Member</span>
+                ) : (
+                  <span style={{color: '#6c757d'}}>-</span>
+                )}
+              </td>
+              
+              {/* KOLOM KATEGORI */}
+              <td>
+                <div className={`user-category ${user.category || ''}`}>
+                  {user.category ? (
+                    user.category === 'advance' ? 'Advance' : 
+                    user.category === 'beginner' ? 'Beginner' : 
+                    user.category
+                  ) : '-'}
+                </div>
+              </td>
+              
+              {/* KOLOM STATUS */}
+              <td>
+                {user.isBanned ? (
+                  <span className="status-badge banned">🚫 Banned</span>
+                ) : user.isActive !== false ? (
+                  <span className="status-badge active">✓ Aktif</span>
+                ) : (
+                  <span className="status-badge inactive">✗ Tidak Aktif</span>
+                )}
+              </td>
+              
+              {/* aksi dipindahkan ke kiri */}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+             
             </div>
           )}
 
@@ -1353,6 +1553,7 @@ const handleShowDeactivateConfirm = (userId) => {
                     </button>
                   </div>
                   
+
                   <div className="messages-thread">
                     {[...userMessages]
                       .filter(msg => {
@@ -1361,98 +1562,129 @@ const handleShowDeactivateConfirm = (userId) => {
                         return true;
                       })
                       .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
-                      .map((msg) => (
-                      <div key={msg.id} className={`message-card ${msg.type === 'admin' ? 'admin-message' : msg.status}`}>
-                        <div className="message-header">
-                          <div className="message-meta">
-                            {msg.type === 'admin' ? (
-                              <>
-                                <span className="message-status-badge admin-sent">
-                                  📤 Anda kirim
-                                </span>
-                                <span className="message-date">
-                                  {new Date(msg.createdAt).toLocaleString('id-ID')}
-                                </span>
-                                {/* Deactivate button for admin-sent message */}
-                                <button
-                                  className="btn-deactivate-message"
-                                  title="Nonaktifkan user ini dari pesan admin"
-                                  onClick={() => handleToggleUserStatus(msg.userId, true)}
-                                >
-                                  Nonaktifkan User
-                                </button>
-                              </>
-                            ) : (
-                              <>
-                                <span className={`message-status-badge ${msg.status}`}>
-                                  {msg.status === 'pending' ? '⏳ Pending' : 
-                                   msg.status === 'read' ? '👁️ Dibaca' : '✓ Dibalas'}
-                                </span>
-                                <span className="message-date">
-                                  {new Date(msg.createdAt).toLocaleString('id-ID')}
-                                </span>
-                              </>
-                            )}
-                          </div>
-                        </div>
+                      .map((msg) => {
+                        // If this is a user message and it is a reply to an admin message, find the replied admin message
+                        let repliedAdminMsg = null;
+                        if (msg.type === 'user' && msg.parentAdminMessageId) {
+                          repliedAdminMsg = userMessages.find(m => m.type === 'admin' && m.id === msg.parentAdminMessageId);
+                        }
+                        return (
+                          <div key={msg.id} className={`message-card ${msg.type === 'admin' ? 'admin-message' : msg.status}`}>
+                            <div className="message-header">
+                              <div className="message-meta">
+                                {msg.type === 'admin' ? (
+                                  <>
+                                    <span className="message-status-badge admin-sent">
+                                      📤 Anda kirim
+                                    </span>
+                                    <span className="message-date">
+                                      {new Date(msg.createdAt).toLocaleString('id-ID')}
+                                    </span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <span className={`message-status-badge ${msg.status}`}>
+                                      {msg.status === 'pending' ? '⏳ Pending' : 
+                                      msg.status === 'read' ? '👁️ Dibaca' : '✓ Dibalas'}
+                                    </span>
+                                    <span className="message-date">
+                                      {new Date(msg.createdAt).toLocaleString('id-ID')}
+                                    </span>
+                                  </>
+                                )}
+                              </div>
+                            </div>
 
-                        <div className="message-content">
-                          <p>{msg.message}</p>
-                        </div>
-                        {msg.type === 'admin' && (
-                          <button onClick={() => handleDeleteMessage(msg.id, msg.type)} className="btn-delete">
-                            Hapus
-                          </button>
-                        )}
-
-                        {msg.type === 'user' && msg.reply && (
-                          <div className="admin-reply-display">
-                            <strong>Balasan Anda:</strong>
-                            <p>{msg.reply}</p>
-                            <span className="reply-date">
-                              Dibalas: {new Date(msg.repliedAt).toLocaleString('id-ID')}
-                            </span>
-                          </div>
-                        )}
-                        <div className="message-actions">
-                        </div>
-                        {msg.type === 'user' && (
-                          <div className="message-actions">
-                            {msg.status === 'read' && (
-                              <span className="info-text">Pesan sudah dibaca</span>
-                            )}
-                            {msg.status === 'pending' && (
-                              <button
-                                onClick={() => handleMarkAsRead(msg.id)}
-                                className="btn-mark-read"
-                              >
-                                Tandai Dibaca
+                            <div className="message-content">
+                              {/* Show replied admin bubble above user message if this is a reply and the referenced admin message exists */}
+                              {msg.type === 'user' && msg.parentAdminMessageId && !repliedAdminMsg && (
+                                <div className="replied-bubble replied-in-message" style={{background:'#fff3cd', borderLeft:'4px solid #ffc107'}}>
+                                  <div className="replied-label" style={{color:'#b26a00'}}>Replied message not found</div>
+                                  <div className="replied-content">
+                                    <span className="replied-text" style={{color:'#b26a00'}}>Pesan admin yang direply sudah dihapus atau tidak ditemukan.</span>
+                                  </div>
+                                </div>
+                              )}
+                              {repliedAdminMsg && (
+                                <div className="replied-bubble replied-in-message">
+                                  <div className="replied-label">Replied this</div>
+                                  <div className="replied-content">
+                                    <span className="replied-sender"><FaUserShield style={{marginRight: '6px'}} /> Admin</span>
+                                    <span className="replied-date">{new Date(repliedAdminMsg.createdAt).toLocaleString('id-ID', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                                    <div className="replied-text">{repliedAdminMsg.message}</div>
+                                  </div>
+                                </div>
+                              )}
+                              <p>{msg.message}</p>
+                            </div>
+                            {msg.type === 'admin' && (
+                              <button onClick={() => handleDeleteMessage(msg.id, msg.type)} className="btn-delete icon-delete" title="Hapus pesan">
+                                <FaTrashAlt />
                               </button>
                             )}
-                            {!msg.reply && (
-                              <div className="reply-form">
-                                <textarea
-                                  placeholder="Tulis balasan..."
-                                  value={replyText}
-                                  onChange={(e) => setReplyText(e.target.value)}
-                                  rows="3"
-                                />
-                                <button
-                                  onClick={() => handleReplyMessage(msg.id)}
-                                  className="btn-reply"
-                                >
-                                  Kirim Balasan
+
+                            {msg.type === 'user' && msg.reply && (
+                              <div className="admin-reply-display">
+                                <strong>Balasan Anda:</strong>
+                                <p>{msg.reply}</p>
+                                <span className="reply-date">
+                                  Dibalas: {new Date(msg.repliedAt).toLocaleString('id-ID')}
+                                </span>
+                              </div>
+                            )}
+                            <div className="message-actions">
+                            </div>
+                            {msg.type === 'user' && (
+                              <div className="message-actions">
+                                {msg.status === 'read' && (
+                                  <span className="info-text">Pesan sudah dibaca</span>
+                                )}
+                                {msg.status === 'pending' && (
+                                  <button
+                                    onClick={() => handleMarkAsRead(msg.id)}
+                                    className="btn-mark-read"
+                                  >
+                                    Tandai Dibaca
+                                  </button>
+                                )}
+                                {!msg.reply && (
+                                  <div className="reply-form">
+                                    <textarea
+                                      placeholder="Tulis balasan..."
+                                      value={replyText}
+                                      onChange={(e) => setReplyText(e.target.value)}
+                                      rows="3"
+                                    />
+                                    <button
+                                        onClick={() => handleReplyMessage(msg.id, msg.userId)}
+                                      className="btn-reply"
+                                    >
+                                      Kirim Balasan
+                                    </button>
+                                  </div>
+                                )}
+                                <button onClick={() => handleDeleteMessage(msg.id, msg.type)} className="btn-delete icon-delete" title="Hapus pesan">
+                                  <FaTrashAlt />
                                 </button>
                               </div>
                             )}
-                            <button onClick={() => handleDeleteMessage(msg.id, msg.type)} className="btn-delete">
-                              Hapus
-                            </button>
                           </div>
-                        )}
-                      </div>
-                    ))}
+                        );
+                      })}
                   </div>
+
+                  {/* Chat input area for admin to send messages like a chat */}
+                  <div className="chat-input-area">
+                    <textarea
+                      className="chat-textarea"
+                      placeholder={`Kirim pesan ke ${selectedUserForMessages.userName}...`}
+                      value={chatMessage}
+                      onChange={(e) => setChatMessage(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSendInlineMessage(); } }}
+                    />
+                    <button className="btn-send-chat" onClick={handleSendInlineMessage}>Kirim</button>
+                  </div>
+
                 </>
               )}
             </div>
@@ -1513,6 +1745,26 @@ const handleShowDeactivateConfirm = (userId) => {
                           year: 'numeric', month: 'long', day: 'numeric' 
                         }) : '-'}
                     </span>
+                  </div>
+                  <div className="info-row">
+                    <label>Kategori:</label>
+                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'center' }}>
+                      <div className={`user-category ${selectedUser.category || ''}`}>
+                        {selectedUser.category ? (selectedUser.category === 'advance' ? 'Advance' : 'Beginner') : 'Belum'}
+                      </div>
+                      <div className="reply-category-buttons" style={{ marginLeft: '0.25rem' }}>
+                        <button
+                          type="button"
+                          className={`category-btn beginner ${selectedUser.category === 'beginner' ? 'active' : ''}`}
+                          onClick={() => handleChangeUserCategory(selectedUser.id, 'beginner')}
+                        >Set Beginner</button>
+                        <button
+                          type="button"
+                          className={`category-btn advance ${selectedUser.category === 'advance' ? 'active' : ''}`}
+                          onClick={() => handleChangeUserCategory(selectedUser.id, 'advance')}
+                        >Set Advance</button>
+                      </div>
+                    </div>
                   </div>
                   
                   {/* Send Message Button */}
@@ -1658,6 +1910,44 @@ const handleShowDeactivateConfirm = (userId) => {
                             <span>{selectedUser.ibafMembershipNumber}</span>
                           </div>
                         )}
+                        <div className="info-row">
+                          <label>Aksi Verifikasi:</label>
+                          <div style={{display: 'flex', gap: 8}}>
+                            <button className="btn-reset-verify" onClick={() => handleAdminResetVerification(selectedUser.id)}>
+                              Isi Ulang Data Verifikasi
+                            </button>
+                          </div>
+                        </div>
+                        {/* Admin controls: allow toggling IBAF membership and editing membership number */}
+                        <div className="info-row ibaf-edit-row">
+                          <label>Ubah Anggota IBAF:</label>
+                          <div className="ibaf-edit-controls">
+                            <label className="ibaf-checkbox">
+                              <input
+                                type="checkbox"
+                                checked={!!tempIsIbafMember}
+                                onChange={(e) => setTempIsIbafMember(e.target.checked)}
+                              />{' '}
+                              Anggota
+                            </label>
+                            {tempIsIbafMember && (
+                              <input
+                                type="text"
+                                placeholder="Nomor Keanggotaan IBAF"
+                                value={tempIbafNumber}
+                                onChange={(e) => setTempIbafNumber(e.target.value)}
+                                className="ibaf-number-input"
+                              />
+                            )}
+                            <button
+                              className="btn-save-ibaf"
+                              onClick={() => selectedUser && handleSetIbafMember(selectedUser.id)}
+                              disabled={loading}
+                            >
+                              {loading ? 'Menyimpan...' : 'Simpan IBAF'}
+                            </button>
+                          </div>
+                        </div>
                       </>
                     )}
                     

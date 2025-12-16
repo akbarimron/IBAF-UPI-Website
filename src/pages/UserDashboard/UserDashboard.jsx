@@ -33,6 +33,11 @@ const UserDashboard = () => {
   const [newEmail, setNewEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showEmailEdit, setShowEmailEdit] = useState(false);
+  const [nim, setNim] = useState('');
+  const [prodi, setProdi] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
+  const [jenisKelamin, setJenisKelamin] = useState('');
+  const [userIbafNumber, setUserIbafNumber] = useState('');
 
   // Avatar options
   const avatarIcons = [
@@ -63,6 +68,7 @@ const UserDashboard = () => {
   const [message, setMessage] = useState('');
   const [messages, setMessages] = useState([]);
   const [messageFilter, setMessageFilter] = useState('all'); // all, sent, received
+  // Removed reply-to-admin feature
   
   // Workout statistics state
   const [weeklyStats, setWeeklyStats] = useState([]);
@@ -83,6 +89,7 @@ const UserDashboard = () => {
   // Tutorial state
   const [showTutorial, setShowTutorial] = useState(false);
   const [tutorialStep, setTutorialStep] = useState(0);
+  const isDev = typeof import.meta !== 'undefined' ? import.meta.env?.MODE !== 'production' : false;
   
   // Ref to track previous user status to avoid duplicate notifications
   const prevStatusRef = useRef({ isBanned: null, isActive: null, verificationStatus: null });
@@ -467,6 +474,11 @@ const UserDashboard = () => {
         // Prioritize fullName from verification over name
         setName(data.fullName || data.name || '');
         setPhotoPreview(data.photoURL || null);
+        setNim(data.nim || '');
+        setProdi(data.prodi || '');
+        setPhoneNumber(data.phoneNumber || '');
+        setJenisKelamin(data.jenisKelamin || '');
+        setUserIbafNumber(data.ibafMembershipNumber || '');
         
         console.log('UserDashboard - fetchUserData:', {
           uid: currentUser.uid,
@@ -609,10 +621,15 @@ const UserDashboard = () => {
         name: name.trim(),
         fullName: name.trim(),
         avatar: selectedAvatar,
+        nim: nim.trim() || null,
+        prodi: prodi || null,
+        phoneNumber: phoneNumber || null,
+        jenisKelamin: jenisKelamin || null,
+        ibafMembershipNumber: userIbafNumber || null,
         updatedAt: new Date().toISOString()
       });
 
-      setUserData({ ...userData, name: name.trim(), fullName: name.trim(), avatar: selectedAvatar });
+      setUserData({ ...userData, name: name.trim(), fullName: name.trim(), avatar: selectedAvatar, nim: nim.trim() || null, prodi: prodi || null, phoneNumber: phoneNumber || null, jenisKelamin: jenisKelamin || null, ibafMembershipNumber: userIbafNumber || null });
       setEditMode(false);
       showNotification('Profil berhasil diupdate!', 'success');
     } catch (error) {
@@ -648,6 +665,31 @@ const UserDashboard = () => {
     } catch (error) {
       console.error('Error sending message:', error);
       showNotification('Gagal mengirim pesan', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendReplyToAdmin = async (parentAdminMsgId) => {
+    if (!replyToText.trim()) return;
+    setLoading(true);
+    try {
+      await addDoc(collection(db, 'userMessages'), {
+        userId: currentUser.uid,
+        userEmail: currentUser.email,
+        userName: userData?.fullName || userData?.name || currentUser.email,
+        message: replyToText.trim(),
+        status: 'pending',
+        parentAdminMessageId: parentAdminMsgId || null,
+        createdAt: new Date().toISOString()
+      });
+
+      setReplyToText('');
+      setReplyingToMessageId(null);
+      showNotification('Balasan terkirim ke admin', 'success');
+    } catch (error) {
+      console.error('Error sending reply:', error);
+      showNotification('Gagal mengirim balasan', 'error');
     } finally {
       setLoading(false);
     }
@@ -779,21 +821,74 @@ const UserDashboard = () => {
       showNotification('Pesan ditandai sudah dibaca', 'success');
     } catch (error) {
       console.error('Error marking message as read (server):', error);
-      // If permission denied for adminMessages, persist local read flag so notification won't reappear locally
-      if (type === 'admin') {
+      // If permission denied for adminMessages, try server-side endpoint (Cloud Function)
+      if (error?.code === 'permission-denied') {
         try {
-          const key = `readAdminIds_${currentUser?.uid}`;
-          const raw = localStorage.getItem(key);
-          const arr = raw ? JSON.parse(raw) : [];
-          if (!arr.includes(messageId)) {
-            arr.push(messageId);
-            localStorage.setItem(key, JSON.stringify(arr));
+          // Try server-side mark-as-read (requires you to deploy the Cloud Function below)
+          const token = currentUser ? await currentUser.getIdToken() : null;
+          if (token) {
+            const endpoint = process.env.REACT_APP_MARK_READ_URL || 'https://<REGION>-<PROJECT>.cloudfunctions.net/markMessageRead';
+            const res = await fetch(endpoint, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + token
+              },
+              body: JSON.stringify({ id: messageId, collection: type === 'admin' ? 'adminMessages' : 'userMessages' })
+            });
+
+            if (res.ok) {
+              showNotification('Pesan ditandai sudah dibaca (server)', 'success');
+              // persist local flag as well to be safe
+              if (type === 'admin') {
+                try {
+                  const key = `readAdminIds_${currentUser?.uid}`;
+                  const raw = localStorage.getItem(key);
+                  const arr = raw ? JSON.parse(raw) : [];
+                  if (!arr.includes(messageId)) {
+                    arr.push(messageId);
+                    localStorage.setItem(key, JSON.stringify(arr));
+                  }
+                } catch (e) { console.error('Failed to persist local read flag', e); }
+              }
+            } else {
+              console.error('Server mark-as-read failed', await res.text());
+              showNotification('Pesan ditandai sudah dibaca (lokal)', 'info');
+            }
+          } else {
+            // No token available, fallback to local persistence
+            try {
+              const key = `readAdminIds_${currentUser?.uid}`;
+              const raw = localStorage.getItem(key);
+              const arr = raw ? JSON.parse(raw) : [];
+              if (!arr.includes(messageId)) {
+                arr.push(messageId);
+                localStorage.setItem(key, JSON.stringify(arr));
+              }
+            } catch (e) { console.error('Failed to persist local read flag', e); }
+            showNotification('Pesan ditandai sudah dibaca (lokal)', 'info');
           }
         } catch (e) {
-          console.error('Failed to persist local read flag', e);
+          console.error('Error calling server mark-as-read:', e);
+          showNotification('Pesan ditandai sudah dibaca (lokal)', 'info');
         }
+      } else {
+        // Other errors: persist local flag for admin messages as fallback
+        if (type === 'admin') {
+          try {
+            const key = `readAdminIds_${currentUser?.uid}`;
+            const raw = localStorage.getItem(key);
+            const arr = raw ? JSON.parse(raw) : [];
+            if (!arr.includes(messageId)) {
+              arr.push(messageId);
+              localStorage.setItem(key, JSON.stringify(arr));
+            }
+          } catch (e) {
+            console.error('Failed to persist local read flag', e);
+          }
+        }
+        showNotification('Pesan ditandai sudah dibaca (lokal)', 'info');
       }
-      showNotification('Pesan ditandai sudah dibaca (lokal)', 'info');
     } finally {
       // Recompute unread count from current messages and local read flags
       try {
@@ -989,6 +1084,13 @@ const UserDashboard = () => {
       )}
 
       {/* Main Content */}
+      {isDev && (
+        <div style={{position: 'fixed', bottom: 18, right: 18, zIndex: 2000}}>
+          <button className="dev-toggle-verify" onClick={() => setNeedsVerification(v => !v)}>
+            Toggle Verify Form
+          </button>
+        </div>
+      )}
       
       {/* Loading state */}
       {!userData ? (
@@ -1016,7 +1118,7 @@ const UserDashboard = () => {
             </div>
           </div>
         </div>
-      ) : (needsVerification && (verificationStatus === 'not_submitted' || !verificationStatus)) ? (
+      ) : (needsVerification) ? (
         <UserVerification userData={userData} onUpdate={fetchUserData} showNotification={showNotification} />
       ) : verificationStatus === 'pending' ? (
         <div className="verification-pending-container">
@@ -1244,6 +1346,56 @@ const UserDashboard = () => {
                       <span className="legend-color" style={{backgroundColor: '#F44336'}}></span>
                       <span>Strength</span>
                     </div>
+                  </div>
+
+                  <div className="info-group">
+                    <label>NIM</label>
+                    {editMode ? (
+                      <input type="text" value={nim} onChange={(e) => setNim(e.target.value)} placeholder="NIM" />
+                    ) : (
+                      <p>{userData?.nim || '-'}</p>
+                    )}
+                  </div>
+
+                  <div className="info-group">
+                    <label>Program Studi</label>
+                    {editMode ? (
+                      <input type="text" value={prodi} onChange={(e) => setProdi(e.target.value)} placeholder="Program Studi" />
+                    ) : (
+                      <p>{userData?.prodi || '-'}</p>
+                    )}
+                  </div>
+
+                  <div className="info-group">
+                    <label>No. Telepon</label>
+                    {editMode ? (
+                      <input type="text" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} placeholder="No. Telepon" />
+                    ) : (
+                      <p>{userData?.phoneNumber || '-'}</p>
+                    )}
+                  </div>
+
+                  <div className="info-group">
+                    <label>Jenis Kelamin</label>
+                    {editMode ? (
+                      <select value={jenisKelamin} onChange={(e) => setJenisKelamin(e.target.value)}>
+                        <option value="">Pilih</option>
+                        <option value="Laki-laki">Laki-laki</option>
+                        <option value="Perempuan">Perempuan</option>
+                        <option value="Lainnya">Lainnya</option>
+                      </select>
+                    ) : (
+                      <p>{userData?.jenisKelamin || '-'}</p>
+                    )}
+                  </div>
+
+                  <div className="info-group">
+                    <label>No. Anggota IBAF</label>
+                    {editMode ? (
+                      <input type="text" value={userIbafNumber} onChange={(e) => setUserIbafNumber(e.target.value)} placeholder="Nomor keanggotaan IBAF (jika ada)" />
+                    ) : (
+                      <p>{userData?.ibafMembershipNumber || '-'}</p>
+                    )}
                   </div>
 
                   {/* Container for Comparison and Stats side by side */}
@@ -1496,6 +1648,7 @@ const UserDashboard = () => {
                                 <FaCheck />
                               </span>
                             )}
+                            {/* delete icon */}
                             <span 
                               className="action-icon delete-icon"
                               onClick={(e) => {
@@ -1509,6 +1662,10 @@ const UserDashboard = () => {
                           </div>
                         </div>
                       </div>
+
+                      {/* For admin messages, show a small reply button and inline reply box */}
+                      {/* Reply-to-admin feature removed */}
+
                       {msg.reply && (
                         <div className="admin-reply">
                           <strong>Balasan Admin:</strong>
