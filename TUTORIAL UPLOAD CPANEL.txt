@@ -1,0 +1,3 @@
+npm install
+npm rundev
+Compress-Archive -Path .\\dist\\* -DestinationPath .\\build.zip -Force
